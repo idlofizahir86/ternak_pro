@@ -1,0 +1,354 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:ternak_pro/shared/theme.dart';
+
+import '../../cubit/konsultasi_page_cubit.dart';
+import '../../cubit/page_cubit.dart';
+import '../../shared/widgets/custom_image_view.dart';
+import '../../shared/widgets/stats_ternak_item.dart';
+
+class DataTernakPage extends StatelessWidget {
+  const DataTernakPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildHeaderSection(context),
+            _buildStatsCard(context),
+            _buildTernakServices(context),
+            SizedBox(height: 110), // Spacing at the bottom
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+Widget _buildHeaderSection(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.12,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: AppColors.gradasi01,
+      ),
+      child: Stack(
+        children: [
+          CustomImageView(
+            imagePath: "assets/home_assets/images/img_star.png",
+            height: MediaQuery.of(context).size.height * 0.12,
+            width: double.infinity,
+            fit: BoxFit.cover,
+          ),
+          Positioned(
+            top: 60,
+            left: 24,
+            right: 24,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Data Ternak Hari Ini',
+                      style: AppTextStyle.medium.copyWith(fontSize: 20, color: AppColors.white100),
+                    ),
+                    
+                  ],
+                ),
+                
+              ],
+            ),
+          ),
+          
+          
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatsCard(BuildContext context) {
+  final fiturList = [
+    StatsTernakItem(
+      title: "Jumlah\nTernak",
+      keterangan: "15",
+      imagePath: "assets/data_ternak_assets/illustrations/cow_jumlah.png",
+    ),
+    StatsTernakItem(
+      title: "Pakan\nHarian",
+      keterangan: "Sudah",
+      imagePath: "assets/data_ternak_assets/illustrations/cow_pakan.png",
+    ),
+    StatsTernakItem(
+      title: "Ternak\nSakit",
+      keterangan: "0",
+      imagePath: "assets/data_ternak_assets/illustrations/cow_sakit.png",
+    ),
+    StatsTernakItem(
+      title: "Ternak\nHamil",
+      keterangan: "2",
+      imagePath: "assets/data_ternak_assets/illustrations/cow_hamil.png",
+    ),
+    StatsTernakItem(
+      title: "Ternak\nMeninggal",
+      keterangan: "0",
+      imagePath: "assets/data_ternak_assets/illustrations/cow_meninggal.png",
+    ),
+    StatsTernakItem(
+      title: "Penyimpanan\nPakan",
+      keterangan: "10 Kg",
+      imagePath: "assets/data_ternak_assets/illustrations/cow_penyimpanan.png",
+    ),
+    StatsTernakItem(
+      title: "Rata-rata\nUsia",
+      keterangan: "3.4 Thn",
+      imagePath: "assets/data_ternak_assets/illustrations/cow_usia.png",
+    ),
+    StatsTernakItem(
+      title: "Ternak Siap\nPanen",
+      keterangan: "2",
+      imagePath: "assets/data_ternak_assets/illustrations/cow_panen.png",
+    ),
+  ];
+
+  return LayoutBuilder(
+    builder: (context, constraints) {
+      // Hitung berapa item per baris berdasarkan lebar kontainer
+      double maxWidth = constraints.maxWidth;
+      double itemWidth = 90; // lebar ideal item
+      int itemsPerRow = (maxWidth / itemWidth).floor().clamp(1, 4); // maksimal 4 item
+
+      double spacing = 8;
+
+      return Container(
+        margin: EdgeInsets.only(top: 25, left: 24, right: 24),
+        padding: EdgeInsets.symmetric(vertical: 14, horizontal: 10),
+        decoration: BoxDecoration(
+          gradient: AppColors.gradasi01WithOpacity20,
+          border: Border.all(color: AppColors.grey20),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          children: [
+            // Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Nama Peternakan",
+                      style: AppTextStyle.extraBold.copyWith(fontSize: 12, color: AppColors.blackText),
+                    ),
+                    SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Image.asset(
+                          'assets/data_ternak_assets/icons/ic_calendar.png',
+                          height: 16,
+                        ),
+                        SizedBox(width: 4),
+                        Text(
+                          'Tanggal Mulai : Senin, 7 Juli 2025',
+                          style: AppTextStyle.regular.copyWith(fontSize: 12, color: AppColors.blackText),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                Image.asset(
+                  'assets/data_ternak_assets/icons/ic_more.png',
+                  height: 20,
+                ),
+              ],
+            ),
+            SizedBox(height: 4),
+            Divider(color: AppColors.grey20, thickness: 1),
+
+            // Grid-like Items
+            Wrap(
+              spacing: spacing,
+              runSpacing: spacing,
+              children: fiturList.map((item) {
+                return SizedBox(
+                  width: (maxWidth - ((itemsPerRow - 1) * spacing)) / itemsPerRow,
+                  child: item,
+                );
+              }).toList(),
+            ),
+
+            
+            SizedBox(height: 4),
+            Divider(color: AppColors.grey20, thickness: 1),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "Dibesarkan Untuk : Sapi Perah",
+                  style: AppTextStyle.semiBold.copyWith(fontSize: 12, color: AppColors.blackText),
+                ),
+                Text(
+                  "Jumlah Awal : 5",
+                  style: AppTextStyle.semiBold.copyWith(fontSize: 12, color: AppColors.blackText),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+
+
+Widget _buildTernakServices(BuildContext context) {
+  final fiturItems = [
+    {
+      "imagePath": 'assets/data_ternak_assets/icons/ic_add_data_ternak.png',
+      "title": 'Tambah Data Ternak',
+      "gradient": AppColors.gradasiFitur1,
+      "onClick": (){
+        Navigator.pushNamed(context, '/tambah-data-ternak');
+      },
+    },
+    {
+      "imagePath": 'assets/data_ternak_assets/icons/ic_update_data_ternak.png',
+      "title": 'Update Data Ternak',
+      "gradient": AppColors.gradasiFitur2,
+      "onClick": (){
+        Navigator.pushNamed(context, '/list-data-ternak-tugas');
+      },
+    },
+    {
+      "imagePath": 'assets/data_ternak_assets/icons/ic_add_tugas.png',
+      "title": 'Tambah Tugas & Jadwal Pengingat',
+      "gradient": AppColors.gradasi02,
+      "onClick": (){
+        Navigator.pushNamed(context, '/tambah-data-tugas');
+      },
+    },
+    {
+      "imagePath": 'assets/data_ternak_assets/icons/ic_kelola_keuangan.png',
+      "title": 'Kelola Keuangan',
+      "gradient": AppColors.gradasiFitur4,
+      "onClick": (){
+        // pastikan berada di tab Konsultasi
+        context.read<PageCubit>().setPage(2);
+        // tampilkan KeuanganPage di dalam tab Konsultasi
+        context.read<KonsultasiPageCubit>().setKonsultasiPage(1);
+
+        // (opsional) lakukan hal lain yang diperlukan, contoh:
+        // context.read<KeuanganCubit>().initData();  // preload data
+      },
+    },
+  ];
+
+  return Container(
+    margin: const EdgeInsets.only(top: 16, left: 24, right: 24),
+    transform: Matrix4.translationValues(0, 0, 0),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Fitur Data Ternak',
+          style: AppTextStyle.semiBold.copyWith(fontSize: 16),
+        ),
+        const SizedBox(height: 8),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final maxWidth = constraints.maxWidth;
+            const spacing = 16.0;
+            final itemWidth = (maxWidth - spacing) / 2;
+
+            return Wrap(
+              spacing: spacing,
+              runSpacing: spacing,
+              children: fiturItems.map((item) {
+                return SizedBox(
+                  width: itemWidth,
+                  height: 140, // ✅ samakan tingginya di sini juga
+                  child: FiturTernakItem(
+                    imagePath: item["imagePath"] as String,
+                    title: item["title"] as String,
+                    gradient: item["gradient"] as Gradient,
+                    onClick: item["onClick"] as VoidCallback,
+                  ),
+                );
+              }).toList(),
+            );
+          },
+        ),
+      ],
+    ),
+  );
+}
+
+
+
+class FiturTernakItem extends StatelessWidget {
+  final String imagePath;
+  final String title;
+  final Gradient gradient;
+  final VoidCallback onClick;
+
+  const FiturTernakItem({
+    super.key,
+    required this.imagePath,
+    required this.title,
+    required this.gradient, 
+    required this.onClick,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onClick,
+      child: Container(
+        
+        height: 140, // ✅ Atur tinggi tetap
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        decoration: BoxDecoration(
+          gradient: gradient,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.grey20,
+              blurRadius: 1,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center, // ✅ Tengah vertikal
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Image.asset(imagePath, height: 37),
+              const SizedBox(height: 6),
+              Flexible(
+                child: Text(
+                  title,
+                  style: AppTextStyle.semiBold.copyWith(
+                    fontSize: 14,
+                    color: AppColors.primaryWhite,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis, // agar tidak meluber
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
