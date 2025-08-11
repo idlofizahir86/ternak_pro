@@ -1,0 +1,86 @@
+name: Ternak Pro CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main  # Jalankan pipeline saat ada perubahan di branch main
+  pull_request:
+    branches:
+      - main  # Jalankan pipeline untuk pull request yang ditujukan ke main
+
+jobs:
+  # Job untuk menginstal Flutter dan melakukan test
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout kode dari GitHub
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # Set up Flutter
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 'stable'
+
+      # Install dependencies
+      - name: Install dependencies
+        run: flutter pub get
+
+      # Menjalankan unit test dan widget test
+      - name: Run tests
+        run: flutter test
+
+  # Job untuk build APK atau iOS
+  build:
+    runs-on: ubuntu-latest
+    needs: test  # Menunggu job 'test' selesai sebelum build
+    steps:
+      # Checkout kode dari GitHub
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # Set up Flutter
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 'stable'
+
+      # Install dependencies
+      - name: Install dependencies
+        run: flutter pub get
+
+      # Build APK untuk Android
+      - name: Build APK
+        run: flutter build apk --release
+
+      # Upload hasil build ke GitHub (misalnya APK atau file lainnya)
+      - name: Upload APK as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: flutter-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+
+  # Optional: Deploy ke App Store atau Google Play (Anda perlu menyesuaikan langkah-langkah ini)
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build  # Menunggu build selesai sebelum deploy
+    steps:
+      # Checkout kode dari GitHub
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # Set up Flutter
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 'stable'
+
+      # Install dependencies
+      - name: Install dependencies
+        run: flutter pub get
+
+      # Deploy ke Play Store atau App Store (disesuaikan dengan kebutuhan)
+      - name: Deploy to Play Store
+        run: |
+          # Tambahkan langkah-langkah untuk deploy ke Play Store di sini
