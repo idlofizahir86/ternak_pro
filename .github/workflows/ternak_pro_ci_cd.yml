@@ -1,99 +1,92 @@
+# Nama workflow untuk identifikasi di GitHub Actions
 name: Ternak Pro CI/CD Pipeline
 
+# Pemicu untuk menjalankan workflow
 on:
   push:
     branches:
-      - main  # Jalankan pipeline saat ada perubahan di branch main
+      - main  # Jalankan saat ada push ke branch main
   pull_request:
     branches:
-      - main  # Jalankan pipeline untuk pull request yang ditujukan ke main
+      - main  # Jalankan untuk pull request yang menargetkan main
 
 jobs:
-  # Job untuk menginstal Flutter dan melakukan test
-  test:
-    runs-on: ubuntu-latest
+  # Job untuk melakukan analisis, testing, dan build
+  build_and_test:
+    name: Build & Test
+    runs-on: ubuntu-latest # Menggunakan runner terbaru dari Ubuntu
+
     steps:
-      # Checkout kode dari GitHub
+      # Langkah 1: Checkout kode dari repositori
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4 # Menggunakan versi terbaru dari action checkout
 
-      # Set up Flutter
-      - name: Set up Flutter
-        uses: flutter/flutter-action@v2
+      # Langkah 2: Set up Java Development Kit (JDK)
+      # Diperlukan oleh Flutter untuk build Android
+      - name: Set up JDK
+        uses: actions/setup-java@v4
         with:
-          flutter-version: 'stable'  # Gunakan stable atau versi yang sesuai dengan lokal
+          distribution: 'temurin'
+          java-version: '17'
 
-      # Debugging: Periksa versi Flutter
-      - name: Debug Flutter version
+      # Langkah 3: Set up Flutter dengan cache
+      # Menggunakan versi Flutter yang spesifik dan cache untuk mempercepat proses
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.32.5' # Ganti dengan versi Flutter yang digunakan di lokal
+          channel: 'stable'
+          cache: true # Mengaktifkan cache untuk dependencies
+
+      # Langkah 4: Menampilkan versi Flutter untuk debugging
+      - name: Show Flutter version
         run: flutter --version
 
-      # Install dependencies
+      # Langkah 5: Menginstal dependencies dari pubspec.yaml
       - name: Install dependencies
         run: flutter pub get
 
-      # Menjalankan unit test dan widget test
+      # Langkah 6: Menjalankan analisis kode untuk memastikan kualitas
+      # Opsi --fatal-infos akan membuat proses gagal jika ada info, bisa diubah sesuai kebutuhan
+      - name: Analyze code
+        run: flutter analyze --fatal-infos
+
+      # Langkah 7: Menjalankan unit & widget tests
       - name: Run tests
         run: flutter test
 
-  # Job untuk build APK atau iOS
-  build:
-    runs-on: ubuntu-latest
-    needs: test  # Menunggu job 'test' selesai sebelum build
-    steps:
-      # Checkout kode dari GitHub
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      # Set up Flutter
-      - name: Set up Flutter
-        uses: flutter/flutter-action@v2
-        with:
-          flutter-version: 'stable'  # Gunakan stable atau versi yang sesuai dengan lokal
-
-      # Debugging: Periksa versi Flutter
-      - name: Debug Flutter version
-        run: flutter --version
-
-      # Install dependencies
-      - name: Install dependencies
-        run: flutter pub get
-
-      # Build APK untuk Android
+      # Langkah 8: Build APK untuk rilis
       - name: Build APK
         run: flutter build apk --release
 
-      # Upload hasil build ke GitHub (misalnya APK atau file lainnya)
+      # Langkah 9: Mengunggah APK sebagai artefak
+      # Artefak ini bisa diunduh dari halaman ringkasan workflow
       - name: Upload APK as artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4 # Menggunakan versi terbaru dari action upload-artifact
         with:
-          name: flutter-apk
+          name: release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
 
-  # Optional: Deploy ke App Store atau Google Play (Anda perlu menyesuaikan langkah-langkah ini)
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build  # Menunggu build selesai sebelum deploy
-    steps:
-      # Checkout kode dari GitHub
-      - name: Checkout code
-        uses: actions/checkout@v2
+  # Job untuk deploy (opsional, bisa diaktifkan nanti)
+  # Saat ini dikomentari agar tidak berjalan
+  # deploy:
+  #   name: Deploy to Store
+  #   runs-on: ubuntu-latest
+  #   needs: build_and_test # Hanya berjalan jika job build_and_test sukses
+  #   steps:
+  #     - name: Download APK artifact
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: release-apk
 
-      # Set up Flutter
-      - name: Set up Flutter
-        uses: flutter/flutter-action@v2
-        with:
-          flutter-version: '3.32.5'  # Gunakan versi Flutter yang sesuai dengan lokal Anda
-
-      # Debugging: Periksa versi Flutter
-      - name: Debug Flutter version
-        run: flutter --version
-
-      # Install dependencies
-      - name: Install dependencies
-        run: flutter pub get
-
-      # Deploy ke Play Store atau App Store (disesuaikan dengan kebutuhan)
-      - name: Deploy to Play Store
-        run: |
-          # langkah-langkah untuk deploy ke Play Store di sini
-          echo "Deploying to Play Store..."
+  #     - name: Deploy to Google Play
+  #       # Anda bisa menggunakan action seperti 'r0adkll/upload-google-play@v1'
+  #       # atau skrip custom untuk deploy.
+  #       run: echo "Deploying to Google Play Store..."
+  #       # Contoh penggunaan action (memerlukan setup credentials):
+  #       # uses: r0adkll/upload-google-play@v1
+  #       # with:
+  #       #   serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT }}
+  #       #   packageName: com.your.package.name
+  #       #   releaseFiles: app-release.apk
+  #       #   track: internal
