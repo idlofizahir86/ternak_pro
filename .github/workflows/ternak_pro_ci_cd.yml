@@ -19,9 +19,13 @@ jobs:
 
       # Set up Flutter
       - name: Set up Flutter
-        uses: subosito/flutter-action@v2
+        uses: flutter/flutter-action@v2
         with:
-          flutter-version: 'stable'
+          flutter-version: 'stable'  # Gunakan stable atau versi yang sesuai dengan lokal
+
+      # Debugging: Periksa versi Flutter
+      - name: Debug Flutter version
+        run: flutter --version
 
       # Install dependencies
       - name: Install dependencies
@@ -42,9 +46,13 @@ jobs:
 
       # Set up Flutter
       - name: Set up Flutter
-        uses: subosito/flutter-action@v2
+        uses: flutter/flutter-action@v2
         with:
-          flutter-version: 'stable'
+          flutter-version: 'stable'  # Gunakan stable atau versi yang sesuai dengan lokal
+
+      # Debugging: Periksa versi Flutter
+      - name: Debug Flutter version
+        run: flutter --version
 
       # Install dependencies
       - name: Install dependencies
@@ -72,9 +80,13 @@ jobs:
 
       # Set up Flutter
       - name: Set up Flutter
-        uses: subosito/flutter-action@v2
+        uses: flutter/flutter-action@v2
         with:
-          flutter-version: '3.32.5'
+          flutter-version: '3.32.5'  # Gunakan versi Flutter yang sesuai dengan lokal Anda
+
+      # Debugging: Periksa versi Flutter
+      - name: Debug Flutter version
+        run: flutter --version
 
       # Install dependencies
       - name: Install dependencies
@@ -83,4 +95,5 @@ jobs:
       # Deploy ke Play Store atau App Store (disesuaikan dengan kebutuhan)
       - name: Deploy to Play Store
         run: |
-          # Kalo bakal ke Play Store di sini
+          # langkah-langkah untuk deploy ke Play Store di sini
+          echo "Deploying to Play Store..."
