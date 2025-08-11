@@ -74,7 +74,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: 'stable'
+          flutter-version: '3.32.5'
 
       # Install dependencies
       - name: Install dependencies
@@ -83,4 +83,4 @@ jobs:
       # Deploy ke Play Store atau App Store (disesuaikan dengan kebutuhan)
       - name: Deploy to Play Store
         run: |
-          # Tambahkan langkah-langkah untuk deploy ke Play Store di sini
+          # Kalo bakal ke Play Store di sini
