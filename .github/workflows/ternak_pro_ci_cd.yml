@@ -10,6 +10,11 @@ on:
     branches:
       - main  # Jalankan untuk pull request yang menargetkan main
 
+env:
+  ANDROID_HOME: /usr/local/lib/android/sdk
+  ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+  PATH: $PATH:/usr/local/lib/android/sdk/cmdline-tools/latest/bin:/usr/local/lib/android/sdk/platform-tools
+
 jobs:
   # Job untuk melakukan analisis, testing, dan build
   build_and_test:
@@ -20,6 +25,10 @@ jobs:
       # Langkah 1: Checkout kode dari repositori
       - name: Checkout code
         uses: actions/checkout@v4 # Menggunakan versi terbaru dari action checkout
+
+      # Langkah 1a: Setup awal Android SDK
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
 
       # Langkah 2: Set up Java Development Kit (JDK)
       # Diperlukan oleh Flutter untuk build Android
@@ -55,11 +64,18 @@ jobs:
       - name: Run tests
         run: flutter test
         
-      # Langkah tambahan: Install NDK yang diperlukan
+      # Langkah 7a: Menerima lisensi Android SDK
+      - name: Accept Android licenses
+        run: |
+          mkdir -p ~/.android
+          touch ~/.android/repositories.cfg
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+
+      # Langkah 7b: Install NDK yang diperlukan
       - name: Install Android NDK
         run: |
-          sdkmanager --install "ndk;29.0.13599879"
-          yes | sdkmanager --licenses
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;29.0.13599879"
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
 
       # Langkah 8: Build APK untuk rilis
       - name: Build APK
@@ -84,7 +100,7 @@ jobs:
   #       uses: actions/download-artifact@v4
   #       with:
   #         name: release-apk
-
+  #
   #     - name: Deploy to Google Play
   #       # Anda bisa menggunakan action seperti 'r0adkll/upload-google-play@v1'
   #       # atau skrip custom untuk deploy.
