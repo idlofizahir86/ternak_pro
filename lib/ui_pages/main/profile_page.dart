@@ -10,6 +10,7 @@ class ProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: const Key('profile_page'),
       body: SingleChildScrollView(
         child: Column(
           children: [
