@@ -10,81 +10,75 @@ on:
     branches:
       - main  # Jalankan untuk pull request yang menargetkan main
 
-env:
-  ANDROID_HOME: /usr/local/lib/android/sdk
-  ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
-  PATH: $PATH:/usr/local/lib/android/sdk/cmdline-tools/latest/bin:/usr/local/lib/android/sdk/platform-tools
-
 jobs:
-  # Job untuk melakukan analisis, testing, dan build
   build_and_test:
     name: Build & Test
-    runs-on: ubuntu-latest # Menggunakan runner terbaru dari Ubuntu
+    runs-on: ubuntu-latest
+    
+    # Environment variables untuk Android SDK
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+      PATH: $PATH:/usr/local/lib/android/sdk/cmdline-tools/latest/bin:/usr/local/lib/android/sdk/platform-tools
 
     steps:
-      # Langkah 1: Checkout kode dari repositori
+      # Langkah 1: Checkout dengan setup tar terlebih dahulu
+      - name: Install tar utility
+        run: sudo apt-get update && sudo apt-get install -y tar
+      
       - name: Checkout code
-        uses: actions/checkout@v4 # Menggunakan versi terbaru dari action checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Untuk mendapatkan seluruh history git
 
-      # Langkah 1a: Setup awal Android SDK
+      # Langkah 2: Setup Android SDK
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      # Langkah 2: Set up Java Development Kit (JDK)
-      # Diperlukan oleh Flutter untuk build Android
+      # Langkah 3: Setup JDK
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      # Langkah 3: Set up Flutter dengan cache
-      # Menggunakan versi Flutter yang spesifik dan cache untuk mempercepat proses
+      # Langkah 4: Setup Flutter
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.32.5' # Ganti dengan versi Flutter yang digunakan di lokal
+          flutter-version: '3.32.5'
           channel: 'stable'
-          cache: true # Mengaktifkan cache untuk dependencies
+          cache: true
 
-      # Langkah 4: Menampilkan versi Flutter untuk debugging
+      # Langkah-langkah berikutnya tetap sama...
       - name: Show Flutter version
         run: flutter --version
 
-      # Langkah 5: Menginstal dependencies dari pubspec.yaml
       - name: Install dependencies
         run: flutter pub get
 
-      # Langkah 6: Menjalankan analisis kode untuk memastikan kualitas
-      # Opsi --fatal-infos akan membuat proses gagal jika ada info, bisa diubah sesuai kebutuhan
       - name: Analyze code
         run: flutter analyze --fatal-infos
 
-      # Langkah 7: Menjalankan unit & widget tests
       - name: Run tests
         run: flutter test
         
-      # Langkah 7a: Menerima lisensi Android SDK
       - name: Accept Android licenses
         run: |
           mkdir -p ~/.android
           touch ~/.android/repositories.cfg
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+          yes | ${{ env.ANDROID_HOME }}/cmdline-tools/latest/bin/sdkmanager --licenses
 
-      # Langkah 7b: Install NDK yang diperlukan
       - name: Install Android NDK
         run: |
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;29.0.13599879"
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+          ${{ env.ANDROID_HOME }}/cmdline-tools/latest/bin/sdkmanager --install "ndk;29.0.13599879"
+          yes | ${{ env.ANDROID_HOME }}/cmdline-tools/latest/bin/sdkmanager --licenses
 
-      # Langkah 8: Build APK untuk rilis
       - name: Build APK
         run: flutter build apk --release
 
-      # Langkah 9: Mengunggah APK sebagai artefak
-      # Artefak ini bisa diunduh dari halaman ringkasan workflow
       - name: Upload APK as artifact
-        uses: actions/upload-artifact@v4 # Menggunakan versi terbaru dari action upload-artifact
+        uses: actions/upload-artifact@v4
         with:
           name: release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
