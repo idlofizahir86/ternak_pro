@@ -54,6 +54,12 @@ jobs:
       # Langkah 7: Menjalankan unit & widget tests
       - name: Run tests
         run: flutter test
+        
+      # Langkah tambahan: Install NDK yang diperlukan
+      - name: Install Android NDK
+        run: |
+          sdkmanager --install "ndk;29.0.13599879"
+          yes | sdkmanager --licenses
 
       # Langkah 8: Build APK untuk rilis
       - name: Build APK
