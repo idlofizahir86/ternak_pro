@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
-
 import '../../cubit/tab_keuangan_cubit.dart';
+import '../../models/KeuanganItem.dart';
+import '../../services/api_service.dart';
 import '../../shared/theme.dart';
 import '../../shared/widgets/keuangan/custom_app_bar.dart';
 import '../../shared/widgets/keuangan/custom_tab_bar.dart';
@@ -18,37 +19,96 @@ class TambahDataKeuanganPage extends StatefulWidget {
 
 class TambahDataKeuanganPageState extends State<TambahDataKeuanganPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-
-  
   final TextEditingController _tanggalController = TextEditingController();
   final TextEditingController _totalController = TextEditingController();
   final TextEditingController _dariController = TextEditingController();
   final TextEditingController _catatanController = TextEditingController();
-
-
   String _selectedAset = '';
+  final ApiService _apiService = ApiService();
+  String _userId = '';
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _loadUserId();
+  }
+
+  Future<void> _loadUserId() async {
+    final credential = await _apiService.loadCredentials();
+    setState(() {
+      _userId = credential['user_id'];
+    });
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _tanggalController.dispose();
+    _totalController.dispose();
+    _dariController.dispose();
+    _catatanController.dispose();
     super.dispose();
+  }
+
+  Future<void> _saveKeuangan(String activePage) async {
+    try {
+      // Validasi input
+      if (_tanggalController.text.isEmpty ||
+          _totalController.text.isEmpty ||
+          _dariController.text.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Harap isi semua field wajib')),
+        );
+        return;
+      }
+
+      // Konversi tanggal dari dd/MM/yyyy ke YYYY-MM-DD
+      final inputFormat = DateFormat('dd/MM/yyyy');
+      final outputFormat = DateFormat('yyyy-MM-dd');
+      final tglKeuangan = inputFormat.parse(_tanggalController.text);
+      final formattedTglKeuangan = outputFormat.format(tglKeuangan);
+
+      // Pemetaan aset ke asetId
+      final asetMap = {
+        'Tunai': 1,
+        'Bank': 2,
+        'E-Wallet': 3,
+      };
+      final asetId = asetMap[_selectedAset] ?? 0;
+
+      // Buat KeuanganItem
+      final keuanganItem = KeuanganItem(
+        idKeuangan: 0, // Akan diisi oleh server
+        isPengeluaran: activePage == 'pengeluaran',
+        nominalTotal: int.parse(_totalController.text.replaceAll(RegExp(r'[^0-9]'), '')),
+        dariTujuan: _dariController.text,
+        asetId: asetId,
+        namaAset: _selectedAset.isNotEmpty ? _selectedAset : '',
+        tglKeuangan: DateTime.parse(formattedTglKeuangan),
+        catatan: _catatanController.text,
+      );
+
+      // Simpan ke API
+      final result = await _apiService.storeKeuangan(keuanganItem, _userId, context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Data keuangan berhasil disimpan')),
+      );
+      Navigator.pop(context, true); // Kembali ke halaman sebelumnya dengan hasil true
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal menyimpan data keuangan: $e')),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Ambil argumen; fallback ke 0 kalau null / tipe tidak sesuai
     final args = ModalRoute.of(context)?.settings.arguments;
     final int initialIndex = switch (args) {
       final Map m when m['initialIndex'] is int => m['initialIndex'] as int,
       _ => 0,
     };
-
 
     return BlocProvider(
       create: (_) => TabKeuanganCubit(initialIndex),
@@ -73,23 +133,20 @@ class TambahDataKeuanganPageState extends State<TambahDataKeuanganPage> with Sin
                 Expanded(
                   child: TabBarView(
                     controller: _tabController,
-                    physics: NeverScrollableScrollPhysics(),
+                    physics: const NeverScrollableScrollPhysics(),
                     children: [
+                      // Tab Pendapatan
                       SingleChildScrollView(
-                        padding: EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(16),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            
-                            // Tanggal Mulai
                             CustomInputKeuanganField(
                               label: 'Tanggal Mulai',
                               hintText: 'HH/BB/TTTT',
                               controller: _tanggalController,
                               isCalendar: true,
                             ),
-
-                            // Tanggal Mulai
                             CustomInputKeuanganField(
                               label: 'Total',
                               hintText: '2.000.000',
@@ -98,30 +155,69 @@ class TambahDataKeuanganPageState extends State<TambahDataKeuanganPage> with Sin
                               isHarga: true,
                               keyboardTipe: TextInputType.number,
                             ),
-                            
                             CustomInputKeuanganField(
                               label: 'Dari',
-                              hintText: 'Ex : Penjualan Susu',
+                              hintText: 'Ex: Penjualan Susu',
                               controller: _dariController,
                               isCalendar: false,
                               isHarga: false,
                             ),
-
                             CustomDropdownInputKeuangan(
                               label: 'Aset',
                               hintText: 'Pilih Aset',
-                              options: ['Tunai', 'Bank', 'E-Wallet'], // Contoh pilihan
+                              options: ['Tunai', 'Bank', 'E-Wallet'],
                               selectedValue: _selectedAset,
                               onChanged: (value) => setState(() => _selectedAset = value),
                             ),
-
                             CustomInputKeuanganField(
                               label: 'Catatan (Opsional)',
                               hintText: 'Write a message',
                               controller: _catatanController,
                               maxLines: 4,
                             ),
-                                  
+                          ],
+                        ),
+                      ),
+                      // Tab Pengeluaran (sama dengan pendapatan untuk contoh ini)
+                      SingleChildScrollView(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CustomInputKeuanganField(
+                              label: 'Tanggal Mulai',
+                              hintText: 'HH/BB/TTTT',
+                              controller: _tanggalController,
+                              isCalendar: true,
+                            ),
+                            CustomInputKeuanganField(
+                              label: 'Total',
+                              hintText: '2.000.000',
+                              controller: _totalController,
+                              isCalendar: false,
+                              isHarga: true,
+                              keyboardTipe: TextInputType.number,
+                            ),
+                            CustomInputKeuanganField(
+                              label: 'Untuk',
+                              hintText: 'Ex: Pembelian Pakan',
+                              controller: _dariController,
+                              isCalendar: false,
+                              isHarga: false,
+                            ),
+                            CustomDropdownInputKeuangan(
+                              label: 'Aset',
+                              hintText: 'Pilih Aset',
+                              options: ['Tunai', 'Bank', 'E-Wallet'],
+                              selectedValue: _selectedAset,
+                              onChanged: (value) => setState(() => _selectedAset = value),
+                            ),
+                            CustomInputKeuanganField(
+                              label: 'Catatan (Opsional)',
+                              hintText: 'Write a message',
+                              controller: _catatanController,
+                              maxLines: 4,
+                            ),
                           ],
                         ),
                       ),
@@ -132,6 +228,7 @@ class TambahDataKeuanganPageState extends State<TambahDataKeuanganPage> with Sin
             ),
             bottomNavigationBar: BottomActionButton(
               activePage: selectedIndex == 0 ? 'pendapatan' : 'pengeluaran',
+              onSave: () => _saveKeuangan(selectedIndex == 0 ? 'pendapatan' : 'pengeluaran'),
             ),
           );
         },
@@ -148,7 +245,8 @@ class CustomDropdownInputKeuangan extends StatefulWidget {
   final String selectedValue;
   final Function(String) onChanged;
 
-  const CustomDropdownInputKeuangan({super.key, 
+  const CustomDropdownInputKeuangan({
+    super.key,
     required this.label,
     required this.hintText,
     required this.options,
@@ -160,17 +258,15 @@ class CustomDropdownInputKeuangan extends StatefulWidget {
   State<CustomDropdownInputKeuangan> createState() => _CustomDropdownInputKeuanganState();
 }
 
-class _CustomDropdownInputKeuanganState
-    extends State<CustomDropdownInputKeuangan> {
+class _CustomDropdownInputKeuanganState extends State<CustomDropdownInputKeuangan> {
   late String selectedValue;
 
   @override
   void initState() {
     super.initState();
-    // Initialize selectedValue with the initial value from the parent widget
     selectedValue = widget.selectedValue;
   }
-  
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -180,14 +276,11 @@ class _CustomDropdownInputKeuanganState
           widget.label,
           style: AppTextStyle.semiBold.copyWith(fontSize: 14, color: AppColors.black100),
         ),
-        SizedBox(height: 3),
+        const SizedBox(height: 3),
         GestureDetector(
-          onTap: () {
-            // Show the options as a dialog or bottom sheet
-            _showOptionsDialog(context);
-          },
+          onTap: () => _showOptionsDialog(context),
           child: Container(
-            padding: EdgeInsets.all(13),
+            padding: const EdgeInsets.all(13),
             decoration: BoxDecoration(
               border: Border.all(color: AppColors.black01),
               borderRadius: BorderRadius.circular(10),
@@ -199,7 +292,7 @@ class _CustomDropdownInputKeuanganState
                   widget.selectedValue.isEmpty ? widget.hintText : widget.selectedValue,
                   style: AppTextStyle.medium.copyWith(
                     fontSize: 14,
-                    color: widget.selectedValue.isEmpty ? AppColors.black01 : AppColors.black100, // Color based on selection
+                    color: widget.selectedValue.isEmpty ? AppColors.black01 : AppColors.black100,
                   ),
                 ),
                 Image.asset(
@@ -211,54 +304,50 @@ class _CustomDropdownInputKeuanganState
             ),
           ),
         ),
-        SizedBox(height: 16),
+        const SizedBox(height: 16),
       ],
     );
   }
 
-  // Function to show the options as a dialog or bottom sheet
   void _showOptionsDialog(BuildContext context) {
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        backgroundColor: AppColors.primaryWhite,
-        
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-        content: SingleChildScrollView(
-          child: ListBody(
-            children: widget.options.map((option) {
-              return RadioListTile<String>(
-                title: Text(
-                  option,
-                  style: AppTextStyle.medium.copyWith(fontSize: 16, color: AppColors.black100),
-                ),
-                value: option,
-                groupValue: widget.selectedValue,
-                onChanged: (String? value) {
-                  setState(() {
-                    selectedValue = value!;
-                  });
-                  widget.onChanged(value!); // Update selected value
-                  Navigator.of(context).pop(); // Close the dialog
-                },
-                activeColor: AppColors.green01, // Color of the radio button's outer circle when selected
-                visualDensity: VisualDensity.compact,
-                toggleable: true, // Allows the radio button to be toggled between on/off state
-                // Set the color of the inner dot when selected
-                fillColor: WidgetStateProperty.all(AppColors.green01), 
-              );
-
-            }).toList(),
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: AppColors.primaryWhite,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
           ),
-        ),
-      );
-    },
-  );
-}
+          contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: widget.options.map((option) {
+                return RadioListTile<String>(
+                  title: Text(
+                    option,
+                    style: AppTextStyle.medium.copyWith(fontSize: 16, color: AppColors.black100),
+                  ),
+                  value: option,
+                  groupValue: widget.selectedValue,
+                  onChanged: (String? value) {
+                    setState(() {
+                      selectedValue = value!;
+                    });
+                    widget.onChanged(value!);
+                    Navigator.of(context).pop();
+                  },
+                  activeColor: AppColors.green01,
+                  visualDensity: VisualDensity.compact,
+                  toggleable: true,
+                  fillColor: WidgetStateProperty.all(AppColors.green01),
+                );
+              }).toList(),
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 
 class CustomInputKeuanganField extends StatelessWidget {
@@ -267,17 +356,18 @@ class CustomInputKeuanganField extends StatelessWidget {
   final TextEditingController controller;
   final int maxLines;
   final TextInputType keyboardTipe;
-  final bool isCalendar; // Flag untuk menentukan apakah akan menampilkan DatePicker
-  final bool isHarga; // Flag untuk menentukan apakah akan menampilkan DatePicker
+  final bool isCalendar;
+  final bool isHarga;
 
-  const CustomInputKeuanganField({super.key, 
+  const CustomInputKeuanganField({
+    super.key,
     required this.label,
     required this.hintText,
     required this.controller,
     this.keyboardTipe = TextInputType.text,
     this.maxLines = 1,
-    this.isCalendar = false, // Default false
-    this.isHarga = false, // Default false
+    this.isCalendar = false,
+    this.isHarga = false,
   });
 
   @override
@@ -287,27 +377,23 @@ class CustomInputKeuanganField extends StatelessWidget {
       children: [
         Text(
           label,
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 14,
-            color: Colors.black,
-          ),
+          style: AppTextStyle.semiBold.copyWith(fontSize: 14, color: AppColors.black100),
         ),
-        SizedBox(height: 3),
+        const SizedBox(height: 3),
         TextField(
           maxLines: maxLines,
           keyboardType: keyboardTipe,
           controller: controller,
-          readOnly: isCalendar, // Make it read-only if it's a DatePicker
+          readOnly: isCalendar,
           decoration: InputDecoration(
             hintText: hintText,
-            hintStyle: TextStyle(fontSize: 14, color: Colors.black54),
+            hintStyle: AppTextStyle.medium.copyWith(fontSize: 14, color: AppColors.black01),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Colors.black54),
+              borderSide: const BorderSide(color: AppColors.black01),
             ),
-            contentPadding: EdgeInsets.symmetric(vertical: 13, horizontal: 14),
-            prefixText: isHarga ? 'Rp. ' : '', // Menambahkan "Rp." jika isHarga true
+            contentPadding: const EdgeInsets.symmetric(vertical: 13, horizontal: 14),
+            prefixText: isHarga ? 'Rp. ' : '',
             suffixIcon: isCalendar
                 ? IconButton(
                     icon: Image.asset(
@@ -319,38 +405,34 @@ class CustomInputKeuanganField extends StatelessWidget {
                       _showDatePicker(context);
                     },
                   )
-                : null, // No icon if it's not a calendar
+                : null,
           ),
           inputFormatters: [
-            if (isHarga) moneyFormatter(), // Format uang jika isHarga true
+            if (isHarga) moneyFormatter(),
           ],
           onTap: isCalendar
               ? () async {
                   _showDatePicker(context);
                 }
-              : null, // If it's a calendar, show DatePicker on tap
+              : null,
         ),
-        SizedBox(height: 16),
+        const SizedBox(height: 16),
       ],
     );
   }
 
   TextInputFormatter moneyFormatter() {
     return TextInputFormatter.withFunction((oldValue, newValue) {
-      // Hapus semua karakter non-digit
       String digitsOnly = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
-
-      // Format angka dengan pemisah ribuan/jutaan/dst.
-      final formatter = NumberFormat('#,##0', 'id_ID'); // Bisa panjang tak terbatas
+      final formatter = NumberFormat('#,##0', 'id_ID');
       String formatted = '';
       if (digitsOnly.isNotEmpty) {
         try {
           formatted = formatter.format(int.parse(digitsOnly));
         } catch (e) {
-          formatted = oldValue.text; // fallback jika parsing gagal
+          formatted = oldValue.text;
         }
       }
-
       return TextEditingValue(
         text: formatted,
         selection: TextSelection.collapsed(offset: formatted.length),
@@ -358,8 +440,6 @@ class CustomInputKeuanganField extends StatelessWidget {
     });
   }
 
-  
-  // Function to show DatePicker dialog
   void _showDatePicker(BuildContext context) async {
     DateTime? selectedDate = await showDatePicker(
       context: context,
@@ -369,34 +449,31 @@ class CustomInputKeuanganField extends StatelessWidget {
     );
 
     if (selectedDate != null) {
-      // Format the selected date and set it in the controller
       String formattedDate = DateFormat('dd/MM/yyyy').format(selectedDate);
-      controller.text = formattedDate; // Update the text field with the selected date
+      controller.text = formattedDate;
     }
   }
-
 }
-
-
 
 class BottomActionButton extends StatelessWidget {
   final String activePage;
+  final VoidCallback onSave;
 
-  const BottomActionButton({super.key, required this.activePage});
+  const BottomActionButton({super.key, required this.activePage, required this.onSave});
+
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: ClipRect(
         child: Opacity(
-          opacity: 1.0, // You can adjust this value for transparency, 1.0 = no transparency
+          opacity: 1.0,
           child: OnboardingButton(
             previous: false,
             text: "Menyimpan",
             width: double.infinity,
             height: 30,
-            onClick: () => Navigator.pushNamed(context, "/tambah-data-$activePage"),
-            
+            onClick: onSave,
           ),
         ),
       ),

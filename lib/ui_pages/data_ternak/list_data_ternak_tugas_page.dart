@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:ternak_pro/cubit/tab_ternak_cubit.dart';
+import 'package:ternak_pro/models/TernakItem.dart';
 import 'package:ternak_pro/shared/theme.dart';
 
+import '../../models/DailyTaskItem.dart';
+import '../../services/api_service.dart';
+import '../../shared/custom_loading.dart';
 import '../../shared/widgets/data_ternak/custom_app_bar.dart';
 import '../../shared/widgets/data_ternak/custom_tab_bar.dart';
 import '../../shared/widgets/data_ternak/data_ternak_list.dart';
@@ -18,35 +22,57 @@ class ListDataTernakTugasPage extends StatefulWidget {
 
 class ListDataTernakTugasPageState extends State<ListDataTernakTugasPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final ApiService _apiService = ApiService();
 
-  // Data ternak dan tugas
-  final List<Map<String, String>> ternakList = [
-    {'id': '001', 'jenis': 'Jantan', 'berat': '70', 'status': 'Sehat'},
-    {'id': '002', 'jenis': 'Betina', 'berat': '70', 'status': 'Sehat'},
-    {'id': '003', 'jenis': 'Jantan', 'berat': '70', 'status': 'Sehat'},
-    {'id': '004', 'jenis': 'Betina', 'berat': '70', 'status': 'Sehat'},
-    {'id': '005', 'jenis': 'Jantan', 'berat': '70', 'status': 'Sehat'},
-    {'id': '006', 'jenis': 'Jantan', 'berat': '70', 'status': 'Sehat'},
-    {'id': '007', 'jenis': 'Jantan', 'berat': '50', 'status': 'Sehat'},
-    {'id': '012', 'jenis': 'Betina', 'berat': '70', 'status': 'Sehat'},
-    {'id': '023', 'jenis': 'Betina', 'berat': '70', 'status': 'Sehat'},
-    {'id': '007', 'jenis': 'Jantan', 'berat': '70', 'status': 'Sehat'},
-    {'id': '012', 'jenis': 'Betina', 'berat': '120', 'status': 'Sakit'},
-    {'id': '023', 'jenis': 'Betina', 'berat': '70', 'status': 'Sehat'},
-    {'id': '007', 'jenis': 'Jantan', 'berat': '70', 'status': 'Sehat'},
-    {'id': '012', 'jenis': 'Betina', 'berat': '70', 'status': 'Sehat'},
-    {'id': '023', 'jenis': 'Betina', 'berat': '70', 'status': 'Sehat'},
-  ];
+  late Future<List<Map<String, dynamic>>> _ternakListFuture;
+  late Future<List<Map<String, dynamic>>> _tugasListFuture;
 
-  final List<Map<String, String>> tugasList = [
-    {'title': 'Pemberian Pakan & Air', 'status': 'Sudah', 'time': '07:00 AM', 'iconPath': 'assets/home_assets/icons/ic_snack.png'},
-    {'title': 'Vaksin Ternak', 'status': 'Tertunda', 'time': '07:00 AM', 'iconPath': 'assets/home_assets/icons/ic_shield.png'},
-  ];
+  Future<List<Map<String, dynamic>>> fetchTernakList() async {
+    final credential = await _apiService.loadCredentials();
+    final userId = credential['user_id'];
+
+    try {
+      // Mapping data ternak yang sudah diambil ke dalam DailyTaskItem
+      List<Ternakitem> ternakListData = await _apiService.getTernakUserAll(userId);
+
+      List<Map<String, dynamic>> ternakListDataFinal = ternakListData.map((ternak) => ternak.toJson()).toList();
+
+      // Menunggu 3 detik sebelum mematikan _isLoadingTasks
+      await Future.delayed(const Duration(seconds: 3));
+
+      return ternakListDataFinal;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> fetchTugasList() async {
+    final credential = await _apiService.loadCredentials();
+    final userId = credential['user_id'];
+
+    try {
+      // Mapping data tugas yang sudah diambil ke dalam DailyTaskItem
+      List<DailyTaskItem> tugasListData = await _apiService.getTugasUserAll(userId);
+
+      List<Map<String, dynamic>> tugasListDataFinal = tugasListData.map((task) => task.toJson()).toList();
+
+      // Menunggu 3 detik sebelum mematikan _isLoadingTasks
+      await Future.delayed(const Duration(seconds: 3));
+
+      return tugasListDataFinal;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _ternakListFuture = fetchTernakList();
+    _tugasListFuture = fetchTugasList();
   }
 
   @override
@@ -90,8 +116,80 @@ class ListDataTernakTugasPageState extends State<ListDataTernakTugasPage> with S
                     controller: _tabController,
                     physics: NeverScrollableScrollPhysics(),
                     children: [
-                      DataTernakList(ternakList),
-                      TugasList(tugasList),
+                      FutureBuilder<List<Map<String, dynamic>>>(
+                        future: _ternakListFuture, // gunakan future dari state
+                        builder: (context, snapshot) {
+                          // Loading state
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return Center(child: TernakProBoxLoading());
+                          }
+
+                          // Error handling
+                          if (snapshot.hasError) {
+                            return Center(
+                              child: Column(
+                                children: [
+                                  Text('Error: ${snapshot.error}'),
+                                  Text('Error details: ${snapshot.error}'),
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        _ternakListFuture = fetchTernakList();
+                                      });
+                                    },
+                                    child: Text('Coba lagi'),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+
+                          // No data handling
+                          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                            return Center(child: Text('Tidak ada tugas saat ini.'));
+                          }
+
+                          // Once data is ready, pass it to the TugasList widget
+                          return DataTernakList(snapshot.data!);
+                        },
+                      ),
+                      FutureBuilder<List<Map<String, dynamic>>>(
+                        future: _tugasListFuture, // gunakan future dari state
+                        builder: (context, snapshot) {
+                          // Loading state
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return Center(child: TernakProBoxLoading());
+                          }
+
+                          // Error handling
+                          if (snapshot.hasError) {
+                            return Center(
+                              child: Column(
+                                children: [
+                                  Text('Error: ${snapshot.error}'),
+                                  Text('Error details: ${snapshot.error}'),
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        _tugasListFuture = fetchTugasList();
+                                      });
+                                    },
+                                    child: Text('Coba lagi'),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+
+                          // No data handling
+                          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                            return Center(child: Text('Tidak ada tugas saat ini.'));
+                          }
+
+                          // Once data is ready, pass it to the TugasList widget
+                          return TugasList(snapshot.data!);
+                        },
+                      ),
                     ],
                   ),
                 ),
@@ -109,7 +207,7 @@ class ListDataTernakTugasPageState extends State<ListDataTernakTugasPage> with S
 
 
 class TugasList extends StatelessWidget {
-  final List<Map<String, String>> tugasList;
+  final List<Map<String, dynamic>> tugasList;
 
   const TugasList(this.tugasList, {super.key});
 
@@ -118,11 +216,13 @@ class TugasList extends StatelessWidget {
     return ListView.builder(
       itemCount: tugasList.length,
       itemBuilder: (context, index) {
+        final task = tugasList[index];
         return CustomTugasItem(
-          title: tugasList[index]['title']!,
-          status: tugasList[index]['status']!,
-          time: tugasList[index]['time']!,
-          iconPath: tugasList[index]['iconPath']!,
+          title: task['nama_tugas'] ?? 'No Title',
+          status: task['status_tugas'] ?? 'No Status',
+          time: task['waktu_tugas'] ?? 'No Time',
+          catatan: task['catatan'] ?? 'No Catatan',
+          iconPath: task['icon_path'] ?? 'assets/home_assets/icons/ic_default.png',
         );
       },
     );

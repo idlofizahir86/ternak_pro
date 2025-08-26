@@ -7,6 +7,7 @@ import 'show_tugas_edit_modal.dart';
 class CustomTugasItem extends StatelessWidget {
   final String title;
   final String status;
+  final String catatan;
   final String time;
   final String iconPath;
 
@@ -15,6 +16,7 @@ class CustomTugasItem extends StatelessWidget {
     required this.status,
     required this.time,
     required this.iconPath,
+    required this.catatan,
   });
 
   @override
@@ -27,11 +29,12 @@ class CustomTugasItem extends StatelessWidget {
           status: status,
           time: time,
           iconPath: iconPath,
-          onSave: ({required String status, required String time, required String note}) {
+          catatan: catatan,
+          onSave: ({required String status, required String time, required String catatan}) {
             // TODO: simpan ke state/BLoC/API sesuai kebutuhanmu
             // contoh:
-            // context.read<TugasCubit>().updateTugas(title, status, time, note);
-            debugPrint('SAVE -> status:$status  time:$time  note:$note  title:$title');
+            // context.read<TugasCubit>().updateTugas(title, status, time, catatan);
+            debugPrint('SAVE -> status:$status  time:$time  catatan:$catatan  title:$title');
           },
         );
       },

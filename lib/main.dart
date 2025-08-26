@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:ternak_pro/cubit/konsultasi_page_cubit.dart';
 import 'package:ternak_pro/cubit/tab_keuangan_cubit.dart';
 import 'package:ternak_pro/ui_pages/asisten_virtual/asisten_virtual_page.dart';
@@ -29,6 +30,7 @@ import 'package:ternak_pro/ui_pages/register/register_page.dart';
 import 'package:ternak_pro/ui_pages/splash_page.dart';
 import 'package:flutter/services.dart';
 
+import 'providers/auth_provider.dart';
 import 'ui_pages/biaya_pakan/perkiraan_biaya_pakan_page.dart';
 import 'ui_pages/harga_pasar/harga_pasar_page.dart';
 import 'ui_pages/rekomendasi_ternak/hasil_rekomendasi_ternak_page.dart';
@@ -51,7 +53,14 @@ void main() async {
     statusBarBrightness: Brightness.light,
   ));
 
-  runApp(const MyApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {

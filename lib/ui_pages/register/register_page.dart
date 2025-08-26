@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ternak_pro/shared/theme.dart';
-
 import '../../shared/widgets/register_app_textfield.dart';
-
-
+import '../../services/api_service.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -15,23 +13,34 @@ class RegisterPage extends StatefulWidget {
 class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderStateMixin {
   bool rememberMe = false;
   bool showPassword = false;
+  bool showPasswordConfirmation = false;
 
   final TextEditingController emailController = TextEditingController();
+  final TextEditingController noTeleponController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  final TextEditingController passwordConfirmationController = TextEditingController();
   final TextEditingController nameController = TextEditingController();
 
   bool emailError = false;
+  bool noTeleponError = false;
   bool passwordError = false;
+  bool passwordConfirmationError = false;
   bool nameError = false;
+  bool noTeleponFocused = false;
   bool emailFocused = false;
   bool passwordFocused = false;
+  bool passwordConfirmationFocused = false;
   bool nameFocused = false;
   String? errorMessage;
+  int selectedRoleId = 3;
 
   final emailRegex = RegExp(r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$");
+  final noTeleponRegex = RegExp(r"^(?:\+62|62|0)8[1-9][0-9]{6,9}$");
 
   AnimationController? _notifAnimController;
   Animation<double>? _notifOpacity;
+
+  final ApiService _apiService = ApiService();
 
   @override
   void initState() {
@@ -52,7 +61,9 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
   void dispose() {
     _notifAnimController?.dispose();
     emailController.dispose();
+    noTeleponController.dispose();
     passwordController.dispose();
+    passwordConfirmationController.dispose();
     nameController.dispose();
     super.dispose();
   }
@@ -76,34 +87,43 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
         setState(() {
           errorMessage = null;
           emailError = false;
+          noTeleponError = false;
           passwordError = false;
+          passwordConfirmationError = false;
           nameError = false;
         });
       }
     });
   }
 
-  void validateAndLogin() {
+  Future<void> validateAndRegister() async {
     setState(() {
+      noTeleponError = false;
       emailError = false;
       passwordError = false;
+      passwordConfirmationError = false;
       nameError = false;
       errorMessage = null;
 
       String email = emailController.text.trim();
+      String noTelepon = noTeleponController.text.trim();
       String password = passwordController.text;
+      String passwordConfirmation = passwordConfirmationController.text;
       String name = nameController.text.trim();
 
       if (email.isEmpty || password.isEmpty || name.isEmpty) {
         emailError = email.isEmpty;
         passwordError = password.isEmpty;
         nameError = name.isEmpty;
-        showError("Oops! Isi form dengan lengkap dulu yah!");
-        return;
       }
       if (!emailRegex.hasMatch(email)) {
         emailError = true;
         showError("Format email tidak valid!");
+        return;
+      }
+      if (noTelepon.isNotEmpty && !noTeleponRegex.hasMatch(noTelepon)) {
+        noTeleponError = true;
+        showError("Format No Telepon tidak valid!");
         return;
       }
       if (password.length < 8) {
@@ -111,10 +131,37 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
         showError("Password minimal 8 karakter!");
         return;
       }
-      // Jika valid, lakukan login (dummy)
-      errorMessage = null;
-      // ...proses login...
+      if (password != passwordConfirmation) {
+        passwordConfirmationError = true;
+        showError("Konfirmasi password tidak cocok!");
+        return;
+      }
     });
+
+    // Proses registrasi
+    try {
+      final user = await _apiService.register(
+        name: nameController.text.trim(),
+        email: emailController.text.trim(),
+        password: passwordController.text,
+        passwordConfirmation: passwordConfirmationController.text,
+        roleId: selectedRoleId,
+        noTelepon: noTeleponController.text.trim().isEmpty ? null : noTeleponController.text.trim(),
+      );
+      // Tampilkan pesan selamat datang
+      if (mounted) {
+        showError("Selamat datang, ${user.name}! Registrasi berhasil.");
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted) {
+            Navigator.pushReplacementNamed(context, '/login');
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        showError(e.toString().replaceFirst('Exception: ', ''));
+      }
+    }
   }
 
   @override
@@ -129,10 +176,10 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
           Container(
             height: width * 1.1,
             decoration: const BoxDecoration(
-              gradient: AppColors.gradasi02, // Gradient from top to bottom
+              gradient: AppColors.gradasi02,
             ),
           ),
-          
+
           Positioned(
             bottom: -115,
             left: 0,
@@ -141,8 +188,8 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
               alignment: Alignment.bottomCenter,
               child: Image.asset(
                 'assets/banner_bottom.png',
-                width: MediaQuery.of(context).size.width, // Gambar mengikuti lebar layar
-                fit: BoxFit.fill, // Mengisi ruang tanpa merusak proporsi
+                width: MediaQuery.of(context).size.width,
+                fit: BoxFit.fill,
               ),
             ),
           ),
@@ -218,6 +265,36 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                         onFocusChange: (hasFocus) {
                           setState(() {
                             nameFocused = hasFocus;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 14),
+                      // No Telepon Field
+                      RegisterAppTextfield(
+                        controller: noTeleponController,
+                        label: "No Telepon",
+                        hintText: "081234656780",
+                        error: noTeleponError,
+                        keyboardType: TextInputType.number,
+                        prefixIcon: Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: ColorFiltered(
+                            colorFilter: ColorFilter.mode(
+                              noTeleponFocused && !noTeleponError
+                                  ? AppColors.black100
+                                  : Colors.grey,
+                              BlendMode.srcIn,
+                            ),
+                            child: Image.asset(
+                              "assets/auth_assets/icons/ic_phone.png",
+                              width: 12,
+                              height: 12,
+                            ),
+                          ),
+                        ),
+                        onFocusChange: (hasFocus) {
+                          setState(() {
+                            noTeleponFocused = hasFocus;
                           });
                         },
                       ),
@@ -305,13 +382,68 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                           });
                         },
                       ),
-                      const SizedBox(height: 35),
+                      const SizedBox(height: 14),
+                      // Password Confirmation Field
+                      RegisterAppTextfield(
+                        controller: passwordConfirmationController,
+                        label: "Konfirmasi Password",
+                        hintText: "Masukkan konfirmasi password",
+                        error: passwordConfirmationError,
+                        obscureText: !showPasswordConfirmation,
+                        prefixIcon: Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: ColorFiltered(
+                            colorFilter: ColorFilter.mode(
+                              passwordConfirmationFocused && !passwordConfirmationError
+                                  ? AppColors.black100
+                                  : Colors.grey,
+                              BlendMode.srcIn,
+                            ),
+                            child: Image.asset(
+                              "assets/auth_assets/icons/ic_lock.png",
+                              width: 12,
+                              height: 12,
+                            ),
+                          ),
+                        ),
+                        suffixIcon: IconButton(
+                          icon: ColorFiltered(
+                            colorFilter: ColorFilter.mode(
+                              showPasswordConfirmation
+                                  ? AppColors.primaryBlue
+                                  : (passwordConfirmationFocused && !passwordConfirmationError
+                                      ? AppColors.black100
+                                      : Colors.grey),
+                              BlendMode.srcIn,
+                            ),
+                            child: Image.asset(
+                              showPasswordConfirmation
+                                  ? "assets/auth_assets/icons/ic_eye_active.png"
+                                  : "assets/auth_assets/icons/ic_eye_unactive.png",
+                              width: 20,
+                              height: 20,
+                            ),
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              showPasswordConfirmation = !showPasswordConfirmation;
+                            });
+                          },
+                        ),
+                        onFocusChange: (hasFocus) {
+                          setState(() {
+                            passwordConfirmationFocused = hasFocus;
+                          });
+                        },
+                      ),
                       
-                      // Login Button
+                      const SizedBox(height: 35),
+
+                      // Register Button
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: validateAndLogin,
+                          onPressed: validateAndRegister,
                           style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
@@ -329,7 +461,7 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                           ),
                         ),
                       ),
-                      
+
                       const SizedBox(height: 10),
                       // Divider with text
                       Row(
@@ -348,7 +480,7 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                             ),
                           ),
                           const Expanded(
-                            child: Divider(thickness: 1, color: AppColors.black50,),
+                            child: Divider(thickness: 1, color: AppColors.black50),
                           ),
                         ],
                       ),
@@ -378,18 +510,19 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                               borderRadius: BorderRadius.circular(10),
                             ),
                           ),
-                          onPressed: () {},
+                          onPressed: () {
+                            // Tambahkan logika untuk login dengan Google jika diperlukan
+                          },
                         ),
                       ),
                       const SizedBox(height: 18),
-                      
 
-                      // Register
+                      // Login Link
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            "Sudah punya akun ? ",
+                            "Sudah punya akun? ",
                             style: AppTextStyle.regular.copyWith(fontSize: 13),
                           ),
                           GestureDetector(
@@ -402,7 +535,7 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                                 color: AppColors.primaryYellow,
                                 fontSize: 13,
                                 decoration: TextDecoration.underline,
-                                decorationColor: AppColors.primaryYellow
+                                decorationColor: AppColors.primaryYellow,
                               ),
                             ),
                           ),
@@ -430,19 +563,19 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
             ),
           ),
 
-          // Error message overlay (selalu di atas semua konten)
+          // Error message overlay
           if (errorMessage != null)
             Positioned(
-              top: 56, // Geser lebih ke atas agar benar-benar di atas semua
+              top: 56,
               left: 0,
               right: 0,
               child: IgnorePointer(
-                ignoring: true, // Supaya tidak menghalangi gesture konten lain
+                ignoring: true,
                 child: FadeTransition(
                   opacity: _notifOpacity!,
                   child: Material(
                     color: Colors.transparent,
-                    elevation: 20, // Pastikan elevation tinggi
+                    elevation: 20,
                     child: Container(
                       color: AppColors.primaryRed,
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -457,7 +590,6 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                               ),
                             ),
                           ),
-                          // Tidak ada tombol close karena auto hilang
                         ],
                       ),
                     ),

@@ -7,12 +7,13 @@ Future<void> showTugasEditModal(
   BuildContext context, {
   required String title,
   required String status,
+  required String catatan,
   required String time,       // format "HH:mm"
   required String iconPath,
   required void Function({
     required String status,
     required String time,
-    required String note,
+    required String catatan,
   }) onSave,
 }) async {
   await showModalBottomSheet(
@@ -23,6 +24,7 @@ Future<void> showTugasEditModal(
     builder: (_) => _TugasEditModal(
       title: title,
       status: status,
+      catatan: catatan,
       time: time,
       iconPath: iconPath,
       onSave: onSave,
@@ -33,13 +35,15 @@ Future<void> showTugasEditModal(
 class _TugasEditModal extends StatefulWidget {
   final String title;
   final String status;
+  final String catatan;
   final String time;
   final String iconPath;
-  final void Function({required String status, required String time, required String note}) onSave;
+  final void Function({required String status, required String time, required String catatan}) onSave;
 
   const _TugasEditModal({
     required this.title,
     required this.status,
+    required this.catatan,
     required this.time,
     required this.iconPath,
     required this.onSave,
@@ -52,7 +56,7 @@ class _TugasEditModal extends StatefulWidget {
 class _TugasEditModalState extends State<_TugasEditModal> {
   late String _status;
   late TextEditingController _timeC;
-  final TextEditingController _noteC = TextEditingController();
+  final TextEditingController _catatanC = TextEditingController();
 
   final Color _teal = const Color(0xFF00C4B4);
   final Color _tealDark = const Color(0xFF089E96);
@@ -63,12 +67,13 @@ class _TugasEditModalState extends State<_TugasEditModal> {
     super.initState();
     _status = widget.status;
     _timeC = TextEditingController(text: widget.time);
+    _catatanC.text = widget.catatan;
   }
 
   @override
   void dispose() {
     _timeC.dispose();
-    _noteC.dispose();
+    _catatanC.dispose();
     super.dispose();
   }
 
@@ -293,7 +298,7 @@ class _TugasEditModalState extends State<_TugasEditModal> {
 
                       // Catatan
                       TextField(
-                        controller: _noteC,
+                        controller: _catatanC,
                         maxLines: 4,
                         minLines: 3,
                         decoration: InputDecoration(
@@ -325,7 +330,7 @@ class _TugasEditModalState extends State<_TugasEditModal> {
                             widget.onSave(
                               status: _status,
                               time: _timeC.text,
-                              note: _noteC.text.trim(),
+                              catatan: _catatanC.text.trim(),
                             );
                             Navigator.pop(context);
                           },

@@ -121,7 +121,7 @@ class MainPage extends StatelessWidget {
                 ),
               ),
               Positioned(
-                bottom: navbarHeight - (aiButtonSize / 2),
+                bottom: navbarHeight - (aiButtonSize / 1.3),
                 child: Column(
                   children: [
                     GestureDetector(

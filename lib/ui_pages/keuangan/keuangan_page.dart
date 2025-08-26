@@ -1,13 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:ternak_pro/shared/custom_loading.dart';
 import 'package:ternak_pro/shared/widgets/keuangan/keuangan_riwayat_section.dart';
 
+import '../../services/api_service.dart';
 import '../../shared/theme.dart';
 import '../../shared/widgets/custom_image_view.dart';
 import '../../shared/widgets/keuangan/income_expense_donut_card.dart';
 
-class KeuanganPage extends StatelessWidget {
+class KeuanganPage extends StatefulWidget {
   const KeuanganPage({super.key});
+  
 
+  @override
+  State<KeuanganPage> createState() => _KeuanganPageState();
+}
+
+class _KeuanganPageState extends State<KeuanganPage> {
+  // Method untuk memuat ulang data setelah menerima true
+  void _refreshPage() {
+    setState(() {
+      // Logika refresh atau pemanggilan ulang API atau data yang diperlukan
+    });
+  }
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -29,8 +44,16 @@ class KeuanganPage extends StatelessWidget {
           Positioned(
             right: 20,
             bottom: 85, // sudah aman karena ada SizedBox 110 di konten
-            child: _FloatingAddButton(
-              onTap: () => Navigator.pushNamed(context, '/tambah-data-keuangan'),
+            child:  _FloatingAddButton(
+              onTap: () async {
+                // Tunggu hasil dari halaman tambah data
+                final result = await Navigator.pushNamed(context, '/tambah-data-keuangan');
+                
+                // Jika hasilnya true, lakukan refresh halaman
+                if (result == true) {
+                  _refreshPage();
+                }
+              },
             ),
           ),
         ],
@@ -166,26 +189,64 @@ Widget _buildHeaderSection(BuildContext context) {
 }
 
 Widget _buildKeuanganContent(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.only(top: 20, left: 24, right: 24),
-      transform: Matrix4.translationValues(0, 0, 0),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Catatan Keuanganmu',
-              style: AppTextStyle.semiBold.copyWith(fontSize: 16),
-            ),
-            SizedBox(height: 16),
-            IncomeExpenseDonutCard(
-              totalPendapatan: 8000000, // 6.000.000
-              totalPengeluaran: 1200000, // 1.200.000
-            ),
-            SizedBox(height: 24),
-            KeuanganRiwayatSection(),
-          ],
-        ),
+  final ApiService _apiService = ApiService();
+
+  return Container(
+    margin: const EdgeInsets.only(top: 20, left: 24, right: 24),
+    transform: Matrix4.translationValues(0, 0, 0),
+    child: SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Catatan Keuanganmu',
+            style: AppTextStyle.semiBold.copyWith(fontSize: 16),
+          ),
+          const SizedBox(height: 16),
+          FutureBuilder<Map<String, int>>(
+            future: _fetchKeuanganData(_apiService),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: TernakProBoxLoading());
+              } else if (snapshot.hasError) {
+                return Center(child: Text('Error: ${snapshot.error}'));
+              } else if (!snapshot.hasData) {
+                return const Center(child: Text('Tidak ada data keuangan'));
+              }
+
+              final totalPendapatan = snapshot.data!['pendapatan'] ?? 0;
+              final totalPengeluaran = snapshot.data!['pengeluaran'] ?? 0;
+
+              return IncomeExpenseDonutCard(
+                totalPendapatan: totalPendapatan,
+                totalPengeluaran: totalPengeluaran,
+              );
+            },
+          ),
+          const SizedBox(height: 24),
+          const KeuanganRiwayatSection(),
+        ],
       ),
-    );
+    ),
+  );
+}
+
+// Fungsi untuk mengambil data pendapatan dan pengeluaran
+Future<Map<String, int>> _fetchKeuanganData(ApiService apiService) async {
+  try {
+    // Ambil userId dari kredensial
+    final credential = await apiService.loadCredentials();
+    final userId = credential['user_id'];
+
+    // Panggil API untuk pendapatan dan pengeluaran
+    final totalPendapatan = await apiService.getTotalKeuangan('pendapatan', userId);
+    final totalPengeluaran = await apiService.getTotalKeuangan('pengeluaran', userId);
+
+    return {
+      'pendapatan': totalPendapatan,
+      'pengeluaran': totalPengeluaran,
+    };
+  } catch (e) {
+    throw Exception('Gagal mengambil data keuangan: $e');
   }
+}

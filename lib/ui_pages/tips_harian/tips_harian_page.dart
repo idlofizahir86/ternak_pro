@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:ternak_pro/shared/custom_loading.dart';
 import 'package:ternak_pro/shared/theme.dart';
+import '../../models/TipsItem.dart';
 import '../../shared/widgets/tips_harian/custom_app_bar.dart';
+import 'package:ternak_pro/services/api_service.dart'; // Sesuaikan path ke ApiService
 
 class TipsHarianPage extends StatefulWidget {
   const TipsHarianPage({super.key});
@@ -10,80 +13,22 @@ class TipsHarianPage extends StatefulWidget {
 }
 
 class _TipsHarianPageState extends State<TipsHarianPage> {
-  // --- DATA DUMMY (sesuai punyamu) ---
-  final List<Map<String, String>> kategoriList = const [
-    {'kategori_id': 'K001', 'kategori_name': 'Semua'},
-    {'kategori_id': 'K002', 'kategori_name': 'Kesehatan'},
-    {'kategori_id': 'K003', 'kategori_name': 'Perawatan'},
-    {'kategori_id': 'K004', 'kategori_name': 'Bisnis'},
-  ];
+  final ApiService _apiService = ApiService();
+  late Future<List<TipsItem>> _tipsFuture;
+  late Future<List<Map<String, dynamic>>> _kategoriFuture;
+  String selectedKategoriId = '1';
 
-  final List<Map<String, dynamic>> tipsList = [
-    {
-      'tips_id': '001',
-      'imageUrl': "assets/home_assets/images/dummy_1.png",
-      'title':
-          'Tips Menjaga Kesehatan Ternak Agar Tidak Mudah Sakit, Biar Makin Profit',
-      'kategori': ['K001', 'K002', 'K003'],
-      'kategori_detail': 'Kesehatan Ternak',
-    },
-    {
-      'tips_id': '002',
-      'imageUrl': "assets/home_assets/images/dummy_2.png",
-      'title': 'Bagaimana Perawatan Ternak Yang Baik Menurut Para Ahli',
-      'kategori': ['K001', 'K004'],
-      'kategori_detail': 'Manajemen Peternakan',
-    },
-    {
-      'tips_id': '003',
-      'imageUrl': "assets/home_assets/images/dummy_2.png",
-      'title':
-          'Kunci Peternakan Tertib: Cara Atur Data, Jadwal, dan Biaya Harian Ternak',
-      'kategori': ['K001', 'K003', 'K004'],
-      'kategori_detail': 'Teknologi Peternakan',
-    },
-    {
-      'tips_id': '004',
-      'imageUrl': "assets/home_assets/images/dummy_2.png",
-      'title':
-          'Inovasi Tanpa Ribet: Cara Gunakan Teknologi untuk Bantu Urus Ternak Harian',
-      'kategori': ['K001', 'K004', 'K003'],
-      'kategori_detail': 'Kesehatan Ternak',
-    },
-    {
-      'tips_id': '005',
-      'imageUrl': "assets/home_assets/images/dummy_2.png",
-      'title': 'Jadwal Vaksinasi & Vitamin Ternak: Panduan Wajib Peternak',
-      'kategori': ['K001', 'K002', 'K003'],
-      'kategori_detail': 'Kesehatan Ternak',
-    },
-    {
-      'tips_id': '006',
-      'imageUrl': "assets/home_assets/images/dummy_2.png",
-      'title':
-          'Rahasia Peternak Sukses: Cara Mengubah Ternak Jadi Aset Menguntungkan',
-      'kategori': ['K001', 'K004', 'K003'],
-      'kategori_detail': 'Bisnis Peternakan',
-    },
-    {
-      'tips_id': '007',
-      'imageUrl': "assets/home_assets/images/dummy_2.png",
-      'title':
-          'Rahasia Peternak Sukses: Cara Mengubah Ternak Jadi Aset Menguntungkan',
-      'kategori': ['K001', 'K002'],
-      'kategori_detail': 'Kesehatan Ternak',
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _tipsFuture = _apiService.getTipsItem();
+    _kategoriFuture = _apiService.getTipsKategoris();
+  }
 
-  // --- STATE: default pilih "Semua" ---
-  String selectedKategoriId = 'K001';
-
-  List<Map<String, dynamic>> get _filteredTips {
-    // Jika "Semua", tampilkan semua
-    if (selectedKategoriId == 'K001') return tipsList;
-    // Selain itu, filter berdasarkan array 'kategori'
-    return tipsList
-        .where((t) => (t['kategori'] as List).contains(selectedKategoriId))
+  List<TipsItem> _filterTips(List<TipsItem> tips) {
+    if (selectedKategoriId == '1') return tips;
+    return tips
+        .where((tip) => tip.kategori.contains(int.parse(selectedKategoriId)))
         .toList();
   }
 
@@ -98,40 +43,68 @@ class _TipsHarianPageState extends State<TipsHarianPage> {
           // --- KATEGORI (horizontal) ---
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: kategoriList.map((k) {
-                  final id = k['kategori_id']!;
-                  final name = k['kategori_name']!;
-                  return GestureDetector(
-                    onTap: () => setState(() => selectedKategoriId = id),
-                    child: TipsKategoriItem(
-                      isActive: selectedKategoriId == id,
-                      title: name,
-                    ),
-                  );
-                }).toList(),
-              ),
+            child: FutureBuilder<List<Map<String, dynamic>>>(
+              future: _kategoriFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(child: Text('Tidak ada data kategori'));
+                }
+
+                final kategoriList = snapshot.data!;
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: kategoriList.map((k) {
+                      final id = k['kategori_id'].toString();
+                      final name = k['kategori_name'] as String;
+                      return GestureDetector(
+                        onTap: () => setState(() => selectedKategoriId = id),
+                        child: TipsKategoriItem(
+                          isActive: selectedKategoriId == id,
+                          title: name,
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                );
+              },
             ),
           ),
           const SizedBox(height: 8),
 
-          // --- LIST ITEM TIPS (mengikuti kategori terpilih) ---
+          // --- LIST ITEM TIPS ---
           Expanded(
-            child: ListView.builder(
-              itemCount: _filteredTips.length,
-              itemBuilder: (context, index) {
-                final item = _filteredTips[index];
-                return TipsOnlyItem(
-                  imageUrl: item['imageUrl'] as String,
-                  kategori: item['kategori_detail'] as String,
-                  title: item['title'] as String,
-                  onTap: () {
-                    Navigator.pushNamed(
-                      context,
-                      '/tips-harian-detail',
-                      arguments: {'id': item['tips_id'].toString()}, // contoh: {'id': '007'}
+            child: FutureBuilder<List<TipsItem>>(
+              future: _tipsFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: TernakProBoxLoading());
+                } else if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(child: Text('Tidak ada data tips'));
+                }
+
+                final filteredTips = _filterTips(snapshot.data!);
+                return ListView.builder(
+                  itemCount: filteredTips.length,
+                  itemBuilder: (context, index) {
+                    final item = filteredTips[index];
+                    return TipsOnlyItem(
+                      imageUrl: item.imageUrl,
+                      kategori: item.kategoriDetail,
+                      title: item.judul,
+                      onTap: () {
+                        Navigator.pushNamed(
+                          context,
+                          '/tips-harian-detail',
+                          arguments: item,
+                        );
+                      },
                     );
                   },
                 );
@@ -144,17 +117,17 @@ class _TipsHarianPageState extends State<TipsHarianPage> {
   }
 }
 
-
 class TipsOnlyItem extends StatelessWidget {
   final String imageUrl;
   final String kategori;
   final String title;
   final VoidCallback? onTap;
+
   const TipsOnlyItem({
-    super.key, 
-    required this.imageUrl, 
-    required this.kategori, 
-    required this.title, 
+    super.key,
+    required this.imageUrl,
+    required this.kategori,
+    required this.title,
     this.onTap,
   });
 
@@ -163,18 +136,11 @@ class TipsOnlyItem extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.only(
-          left: 24,
-          top: 13,
-          bottom: 30,
-        ),
+        padding: const EdgeInsets.only(left: 24, top: 13, bottom: 30),
         decoration: BoxDecoration(
-          border: BoxBorder.fromLTRB(
-            bottom: BorderSide(
-              color: AppColors.black10,
-              style: BorderStyle.solid
-            )
-          )
+          border: Border(
+            bottom: BorderSide(color: AppColors.black10, style: BorderStyle.solid),
+          ),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -185,14 +151,13 @@ class TipsOnlyItem extends StatelessWidget {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(8),
                 image: DecorationImage(
-                  image: AssetImage(imageUrl),
+                  image: NetworkImage(imageUrl), // Ubah ke NetworkImage
                   fit: BoxFit.cover,
+                  onError: (exception, stackTrace) => const AssetImage('assets/placeholder_image.png'),
                 ),
               ),
             ),
             const SizedBox(width: 6),
-            
-            // Expanded biar teks menyesuaikan sisa ruang
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -236,26 +201,25 @@ class TipsOnlyItem extends StatelessWidget {
 class TipsKategoriItem extends StatelessWidget {
   final bool isActive;
   final String title;
+
   const TipsKategoriItem({
-    super.key, 
-    required this.isActive, 
+    super.key,
+    required this.isActive,
     required this.title,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(8),
-      margin: EdgeInsets.only(right: 14),
+      padding: const EdgeInsets.all(8),
+      margin: const EdgeInsets.only(right: 14),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: AppColors.green01,
-        ),
-        color: isActive? AppColors.green01 : AppColors.bgLight,
+        border: Border.all(color: AppColors.green01),
+        color: isActive ? AppColors.green01 : AppColors.bgLight,
       ),
       child: Text(
-        title, 
+        title,
         style: AppTextStyle.regular.copyWith(
           fontSize: 12,
           color: isActive ? AppColors.bgLight : AppColors.green01,

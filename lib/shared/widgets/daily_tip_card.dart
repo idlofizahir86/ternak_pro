@@ -7,20 +7,20 @@ class DailyTipCardWidget extends StatelessWidget {
   final String imagePath;
   final String title;
   final String author;
-  final VoidCallback? ontTap;
+  final VoidCallback? onTap;
 
   const DailyTipCardWidget({
     super.key,
     required this.imagePath,
     required this.title,
     required this.author, 
-    this.ontTap,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: ontTap,
+      onTap: onTap,
       child: Container(
         width: 176,
         margin: EdgeInsets.only(right: 16),

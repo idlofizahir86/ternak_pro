@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:ternak_pro/shared/custom_loading.dart';
+import '../../services/api_service.dart';
 import '../../shared/theme.dart';
 import '../../shared/widgets/custom_image_view.dart';
 import '../../shared/widgets/onboarding_buttom.dart';
@@ -11,6 +13,7 @@ class CustomInputTernakField extends StatelessWidget {
   final TextEditingController controller;
   final int maxLines;
   final bool isCalendar; // Flag untuk menentukan apakah akan menampilkan DatePicker
+  final TextInputType? keyboardType;
 
   const CustomInputTernakField({super.key, 
     required this.label,
@@ -18,6 +21,7 @@ class CustomInputTernakField extends StatelessWidget {
     required this.controller,
     this.maxLines = 1,
     this.isCalendar = false, // Default false
+    this.keyboardType,
   });
 
   @override
@@ -87,15 +91,15 @@ class CustomInputTernakField extends StatelessWidget {
 
 }
 
-// Widget untuk Dropdown
 class CustomDropdownInputTernak extends StatefulWidget {
   final String label;
   final String hintText;
-  final List<String> options;
+  final List<Map<String, dynamic>> options;
   final String selectedValue;
   final Function(String) onChanged;
 
-  const CustomDropdownInputTernak({super.key, 
+  const CustomDropdownInputTernak({
+    super.key,
     required this.label,
     required this.hintText,
     required this.options,
@@ -107,17 +111,7 @@ class CustomDropdownInputTernak extends StatefulWidget {
   State<CustomDropdownInputTernak> createState() => _CustomDropdownInputTernakState();
 }
 
-class _CustomDropdownInputTernakState
-    extends State<CustomDropdownInputTernak> {
-  late String selectedValue;
-
-  @override
-  void initState() {
-    super.initState();
-    // Initialize selectedValue with the initial value from the parent widget
-    selectedValue = widget.selectedValue;
-  }
-  
+class _CustomDropdownInputTernakState extends State<CustomDropdownInputTernak> {
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -127,14 +121,11 @@ class _CustomDropdownInputTernakState
           widget.label,
           style: AppTextStyle.semiBold.copyWith(fontSize: 14, color: AppColors.black100),
         ),
-        SizedBox(height: 3),
+        const SizedBox(height: 3),
         GestureDetector(
-          onTap: () {
-            // Show the options as a dialog or bottom sheet
-            _showOptionsDialog(context);
-          },
+          onTap: () => _showOptionsDialog(context),
           child: Container(
-            padding: EdgeInsets.all(13),
+            padding: const EdgeInsets.all(13),
             decoration: BoxDecoration(
               border: Border.all(color: AppColors.black01),
               borderRadius: BorderRadius.circular(10),
@@ -143,10 +134,13 @@ class _CustomDropdownInputTernakState
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  widget.selectedValue.isEmpty ? widget.hintText : widget.selectedValue,
+                  widget.selectedValue.isEmpty ? widget.hintText : widget.options.firstWhere(
+                    (option) => option['id'].toString() == widget.selectedValue,
+                    orElse: () => {'nama': widget.hintText},
+                  )['nama'],
                   style: AppTextStyle.medium.copyWith(
                     fontSize: 14,
-                    color: widget.selectedValue.isEmpty ? AppColors.black01 : AppColors.black100, // Color based on selection
+                    color: widget.selectedValue.isEmpty ? AppColors.black01 : AppColors.black100,
                   ),
                 ),
                 Image.asset(
@@ -158,54 +152,49 @@ class _CustomDropdownInputTernakState
             ),
           ),
         ),
-        SizedBox(height: 16),
+        const SizedBox(height: 16),
       ],
     );
   }
 
-  // Function to show the options as a dialog or bottom sheet
   void _showOptionsDialog(BuildContext context) {
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        backgroundColor: AppColors.primaryWhite,
-        
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-        content: SingleChildScrollView(
-          child: ListBody(
-            children: widget.options.map((option) {
-              return RadioListTile<String>(
-                title: Text(
-                  option,
-                  style: AppTextStyle.medium.copyWith(fontSize: 16, color: AppColors.black100),
-                ),
-                value: option,
-                groupValue: widget.selectedValue,
-                onChanged: (String? value) {
-                  setState(() {
-                    selectedValue = value!;
-                  });
-                  widget.onChanged(value!); // Update selected value
-                  Navigator.of(context).pop(); // Close the dialog
-                },
-                activeColor: AppColors.green01, // Color of the radio button's outer circle when selected
-                visualDensity: VisualDensity.compact,
-                toggleable: true, // Allows the radio button to be toggled between on/off state
-                // Set the color of the inner dot when selected
-                fillColor: WidgetStateProperty.all(AppColors.green01), 
-              );
-
-            }).toList(),
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: AppColors.primaryWhite,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
           ),
-        ),
-      );
-    },
-  );
-}
+          contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: widget.options.map((option) {
+                return RadioListTile<String>(
+                  title: Text(
+                    option['nama'],
+                    style: AppTextStyle.medium.copyWith(fontSize: 16, color: AppColors.black100),
+                  ),
+                  value: option['id'].toString(),
+                  groupValue: widget.selectedValue,
+                  onChanged: (String? value) {
+                    setState(() {
+                      widget.onChanged(value!);
+                    });
+                    Navigator.of(context).pop();
+                  },
+                  activeColor: AppColors.green01,
+                  visualDensity: VisualDensity.compact,
+                  toggleable: true,
+                  fillColor: WidgetStateProperty.all(AppColors.green01),
+                );
+              }).toList(),
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 
 // Header dengan ikon back
@@ -279,21 +268,126 @@ class TambahDataTernakPageState extends State<TambahDataTernakPage> {
 
   bool _isChecked = false;
   String _selectedHewan = '';
-  String _selectedBesarkan = '';
   String _selectedRas = '';
+  String _selectedTujuanTernak = '';
   String _selectedUsia = '';
   String _selectedKondisi = '';
   String _selectedJenisKelamin = '';
 
+  List<Map<String, dynamic>> _optionsHewan = [];
+  List<Map<String, dynamic>> _optionsRas = [];
+  List<Map<String, dynamic>> _optionsTujuanTernak = [];
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  final ApiService _apiService = ApiService();
+  String userId = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      await loadUserId();
+      final hewan = await _apiService.getHewan();
+      final ras = await _apiService.getRas();
+      final tujuanTernak = await _apiService.getTujuanTernakListByUserId(userId);
+      setState(() {
+        _optionsHewan = hewan;
+        _optionsRas = ras;
+        _optionsTujuanTernak = tujuanTernak;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Gagal memuat data: $e';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> loadUserId() async {
+    final credential = await _apiService.loadCredentials();
+    setState(() {
+      userId = credential['user_id'];
+    });
+  }
+
+  Future<void> _saveData() async {
+    try {
+      final data = {
+        'user_id': userId,
+        'nama_peternakan': _namaPeternakanController.text,
+        'tanggal_mulai': _tanggalMulaiController.text,
+        'hewan': _selectedHewan,
+        'ras': _selectedRas,
+        'tujuan_ternak': _selectedTujuanTernak,
+        'usia': _selectedUsia,
+        'catatan': _catatanController.text,
+        'is_individu': _isChecked,
+        if (_isChecked) ...{
+          'nomor_ternak': _jumlahHewanController.text,
+          'kondisi': _selectedKondisi,
+          'jenis_kelamin': _selectedJenisKelamin,
+          'berat': _beratController.text,
+        } else ...{
+          'jumlah_hewan': _jumlahController.text,
+        },
+      };
+
+      // Kirim data ke API (misalnya endpoint POST /ternak)
+      // await _apiService.createTernak(data);
+
+      // Navigasi ke halaman daftar setelah sukses
+      Navigator.pushNamed(context, '/list-data-ternak-tugas');
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal menyimpan data: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: TernakProBoxLoading()),
+      );
+    }
+
+    if (_errorMessage != null) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(_errorMessage!),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    _isLoading = true;
+                    _errorMessage = null;
+                  });
+                  _loadData();
+                },
+                child: const Text('Coba Lagi'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(MediaQuery.of(context).size.height * 0.12),
-        child: _buildHeaderSection(context),  // Menggunakan header yang sudah dibuat
+        child: _buildHeaderSection(context),
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -303,7 +397,6 @@ class TambahDataTernakPageState extends State<TambahDataTernakPage> {
               hintText: 'Masukkan Nama Peternakanmu',
               controller: _namaPeternakanController,
             ),
-            
             // Tanggal Mulai
             CustomInputTernakField(
               label: 'Tanggal Mulai',
@@ -311,63 +404,59 @@ class TambahDataTernakPageState extends State<TambahDataTernakPage> {
               controller: _tanggalMulaiController,
               isCalendar: true,
             ),
-            
+            // Pilih Hewan dan Ras
             Row(
               children: [
-                // Pilih Hewan
                 Expanded(
                   child: CustomDropdownInputTernak(
                     label: 'Pilih Hewan',
                     hintText: 'Pilih salah satu',
-                    options: ['Hewan 1', 'Hewan 2', 'Hewan 3'], // Contoh pilihan
+                    options: _optionsHewan,
                     selectedValue: _selectedHewan,
                     onChanged: (value) => setState(() => _selectedHewan = value),
                   ),
                 ),
-
-                SizedBox(width: 8),
-                
-                // Pilih Ras
+                const SizedBox(width: 8),
                 Expanded(
                   child: CustomDropdownInputTernak(
                     label: 'Pilih Ras',
                     hintText: 'Masukkan Ras',
-                    options: ['Ras 1', 'Ras 2', 'Ras 3'], // Contoh pilihan
+                    options: _optionsRas,
                     selectedValue: _selectedRas,
                     onChanged: (value) => setState(() => _selectedRas = value),
                   ),
                 ),
               ],
             ),
-
+            // Dibesarkan untuk dan Usia
             Row(
               children: [
-                // Pilih Dibesarkan
                 Expanded(
                   child: CustomDropdownInputTernak(
                     label: 'Dibesarkan untuk',
                     hintText: 'Pilih salah satu',
-                    options: ['Sapi Peras', 'Peranak', 'Terbang'], // Contoh pilihan
-                    selectedValue: _selectedBesarkan,
-                    onChanged: (value) => setState(() => _selectedBesarkan = value),
+                    options: _optionsTujuanTernak,
+                    selectedValue: _selectedTujuanTernak,
+                    onChanged: (value) => setState(() => _selectedTujuanTernak = value),
                   ),
                 ),
-
-                SizedBox(width: 8),
-                
-                // Pilih Usia
+                const SizedBox(width: 8),
                 Expanded(
                   child: CustomDropdownInputTernak(
-                      label: 'Usia',
-                      hintText: 'Pilih salah satu',
-                      options: ['h', 'Usia 2', 'Usia 3'], // Contoh pilihan
-                      selectedValue: _selectedUsia,
-                      onChanged: (value) => setState(() => _selectedUsia = value),
-                    ),
+                    label: 'Usia',
+                    hintText: 'Pilih salah satu',
+                    options: const [
+                      {'id': '1', 'nama': '0-6 bulan'},
+                      {'id': '2', 'nama': '6-12 bulan'},
+                      {'id': '3', 'nama': '1-2 tahun'},
+                      {'id': '4', 'nama': '>2 tahun'},
+                    ],
+                    selectedValue: _selectedUsia,
+                    onChanged: (value) => setState(() => _selectedUsia = value),
+                  ),
                 ),
               ],
             ),
-           
             // Checkbox
             Row(
               children: [
@@ -379,62 +468,59 @@ class TambahDataTernakPageState extends State<TambahDataTernakPage> {
                     });
                   },
                 ),
-                Text('Saya ingin mencatat ternak secara individu'),
+                const Text('Saya ingin mencatat ternak secara individu'),
               ],
             ),
-            
-            // Nomer Ternak (Tag) jika checkbox dicentang
+            // Jika checkbox dicentang
             if (_isChecked) ...[
               CustomInputTernakField(
                 label: 'Nomer Ternak (Tag)',
                 hintText: 'Ketikan nomor ternak',
                 controller: _jumlahHewanController,
               ),
-              // Pilih Kondisi
               CustomDropdownInputTernak(
                 label: 'Kondisi',
                 hintText: 'Pilih salah satu',
-                options: ['Sehat', 'Sakit'],
+                options: const [
+                  {'id': 'Sehat', 'nama': 'Sehat'},
+                  {'id': 'Sakit', 'nama': 'Sakit'},
+                ],
                 selectedValue: _selectedKondisi,
                 onChanged: (value) => setState(() => _selectedKondisi = value),
               ),
-
               Row(
                 children: [
-                  // Jenis Kelamin
                   Expanded(
                     child: CustomDropdownInputTernak(
                       label: 'Jenis Kelamin',
                       hintText: 'Pilih salah satu',
-                      options: ['Jantan', 'Betina'],
+                      options: const [
+                        {'id': 'Jantan', 'nama': 'Jantan'},
+                        {'id': 'Betina', 'nama': 'Betina'},
+                      ],
                       selectedValue: _selectedJenisKelamin,
                       onChanged: (value) => setState(() => _selectedJenisKelamin = value),
                     ),
                   ),
-
-                  SizedBox(width: 8),
-                  
-                  // Berat
+                  const SizedBox(width: 8),
                   Expanded(
                     child: CustomInputTernakField(
-                        label: 'Berat (Kg)',
-                        hintText: 'Ex: 6',
-                        controller: _beratController,
-                      ),
+                      label: 'Berat (Kg)',
+                      hintText: 'Ex: 6',
+                      controller: _beratController,
+                      keyboardType: TextInputType.number,
+                    ),
                   ),
                 ],
               ),
             ] else ...[
-              // Jika _isChecked false, tampilkan CustomInputTernakField untuk "Jumlah Hewan"
               CustomInputTernakField(
                 label: 'Jumlah Hewan',
                 hintText: 'Ketik Jumlah',
                 controller: _jumlahController,
+                keyboardType: TextInputType.number,
               ),
             ],
-            
-            
-                        
             // Catatan (Opsional)
             CustomInputTernakField(
               label: 'Catatan (Opsional)',
@@ -442,13 +528,12 @@ class TambahDataTernakPageState extends State<TambahDataTernakPage> {
               controller: _catatanController,
               maxLines: 4,
             ),
-            
             // Simpan Button
             OnboardingButton(
               previous: false,
-              text: "Simpan",
+              text: "➞ Simpan", // Menggunakan emoji panah tebal dari respons sebelumnya
               width: double.infinity,
-              onClick: () => Navigator.pushNamed(context, '/list-data-ternak-tugas'),
+              onClick: _saveData,
             ),
           ],
         ),

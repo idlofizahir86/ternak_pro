@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/api_service.dart';
 import '../../shared/theme.dart';
 import '../../shared/widgets/custom_image_view.dart';
 import '../../shared/widgets/onboarding_buttom.dart';
@@ -162,7 +163,7 @@ class CustomInputTugasFieldState extends State<CustomInputTugasField> {
 class CustomDropdownInputTernak extends StatefulWidget {
   final String label;
   final String hintText;
-  final List<String> options;
+  final List<Map<String, dynamic>> options;
   final String selectedValue;
   final Function(String) onChanged;
 
@@ -181,12 +182,39 @@ class CustomDropdownInputTernak extends StatefulWidget {
 
 class _CustomDropdownInputTernakState extends State<CustomDropdownInputTernak> {
   late String selectedValue;
-
+  
   @override
   void initState() {
     super.initState();
     selectedValue = widget.selectedValue;
+      // Ganti 'user_id' dengan ID pengguna yang sesuai
   }
+
+  String _getSelectedName(String selectedValue) {
+    // Mengonversi selectedValue menjadi int
+    final int selectedId = int.tryParse(selectedValue) ?? -1; // Default ke -1 jika gagal
+
+    // Mencari nama berdasarkan selectedValue (id)
+    final option = widget.options.firstWhere(
+      (option) => option['id'] == selectedId, // Membandingkan dengan id setelah di-convert
+      orElse: () => {'nama': ''}, // Jika tidak ditemukan, kembalikan nama kosong
+    );
+
+    return option['nama'] ?? ''; // Mengembalikan nama jika ditemukan
+  }
+
+  String _getSelectedId(String selectedTitle) {
+      // Mencari id berdasarkan selectedTitle (nama)
+      final option = widget.options.firstWhere(
+        (option) => option['nama'] == selectedTitle,
+        orElse: () => {'id': -1}, // Jika tidak ditemukan, kembalikan id -1
+      );
+
+      return option['id'].toString(); // Mengembalikan id jika ditemukan
+  }
+
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -212,7 +240,7 @@ class _CustomDropdownInputTernakState extends State<CustomDropdownInputTernak> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  widget.selectedValue.isEmpty ? widget.hintText : widget.selectedValue,
+                  widget.selectedValue.isEmpty ? widget.hintText : _getSelectedName(widget.selectedValue),
                   style: AppTextStyle.medium.copyWith(
                     fontSize: 14,
                     color: widget.selectedValue.isEmpty ? AppColors.black01 : AppColors.black100,
@@ -247,10 +275,10 @@ class _CustomDropdownInputTernakState extends State<CustomDropdownInputTernak> {
               children: widget.options.map((option) {
                 return RadioListTile<String>(
                   title: Text(
-                    option,
+                    option['nama'].toString(),
                     style: AppTextStyle.medium.copyWith(fontSize: 16, color: AppColors.black100),
                   ),
-                  value: option,
+                  value: option['id'].toString(),
                   groupValue: widget.selectedValue,
                   onChanged: (String? value) {
                     if (value != null) {
@@ -261,7 +289,11 @@ class _CustomDropdownInputTernakState extends State<CustomDropdownInputTernak> {
                       Navigator.of(context).pop();
 
                       // If "Khusus.." is selected, show the recurrence modal
-                      if (value == 'Khusus..') {
+                      if (value == _getSelectedId('Khusus..')) {
+                        _showRecurrenceModal(context);
+                      }
+
+                      if (value == '0') {
                         _showRecurrenceModal(context);
                       }
                     }
@@ -691,9 +723,55 @@ class TambahDataTugasPageState extends State<TambahDataTugasPage> {
   final TextEditingController _tanggalPerawatanController = TextEditingController();
   final TextEditingController _catatanController = TextEditingController();
 
+  
+  List<Map<String, dynamic>> _optionsJenisTugas = []; // Menyimpan options di state lokal
+  List<Map<String, dynamic>> _optionsPengulanganTugas = []; // Menyimpan options di state lokal
+  List<Map<String, dynamic>> _optionsStatusTugas = []; // Menyimpan options di state lokal
+
+  final ApiService _apiService = ApiService();
+  String userId = '';
+
   String _selectedTugas = '';
   String _selectedStatus = '';
-  String _selectedPengulangan = 'Tidak berulang';
+  String _selectedPengulangan = '1'; // Default ke "Tidak Pernah" (id: 1)
+
+  @override
+  void initState() {
+    super.initState();
+    _getJenisTugas();  // Ganti 'user_id' dengan ID pengguna yang sesuai
+    _getPengulanganTugas();  // Ganti 'user_id' dengan ID pengguna yang sesuai
+    _getStatusTugas();  // Ganti 'user_id' dengan ID pengguna yang sesuai
+  }
+  
+  // Mendapatkan daftar jenis tugas dari API
+  Future<void> loadUserId() async {
+    final credential = await _apiService.loadCredentials();
+    userId = credential['user_id'];
+  }
+
+  Future<void> _getJenisTugas() async {
+    await loadUserId();
+    final options = await _apiService.getJenisTugasListByUserId(userId);
+    setState(() {
+      _optionsJenisTugas = options;
+    });
+  }
+
+  Future<void> _getPengulanganTugas() async {
+    await loadUserId();
+    final options = await _apiService.getPengulanganTugas();
+    setState(() {
+      _optionsPengulanganTugas = options;
+    });
+  }
+
+  Future<void> _getStatusTugas() async {
+    await loadUserId();
+    final options = await _apiService.getStatusTugas();
+    setState(() {
+      _optionsStatusTugas = options;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -711,7 +789,7 @@ class TambahDataTugasPageState extends State<TambahDataTugasPage> {
             CustomDropdownInputTernak(
               label: 'Jenis Tugas Perawatan',
               hintText: 'Pilih jenis tugas',
-              options: ['Pemberian Pakan & Air', 'Vaksin Ternak', 'Tugas'], // Contoh pilihan
+              options: _optionsJenisTugas, // Contoh pilihan
               selectedValue: _selectedTugas,
               onChanged: (value) => setState(() => _selectedTugas = value),
             ),
@@ -748,7 +826,7 @@ class TambahDataTugasPageState extends State<TambahDataTugasPage> {
             CustomDropdownInputTernak(
               label: 'Status Perawatan',
               hintText: 'Pilih Salah Satu',
-              options: ['Sudah', 'Tertunda'], // Contoh pilihan
+              options: _optionsStatusTugas,
               selectedValue: _selectedStatus,
               onChanged: (value) => setState(() => _selectedStatus = value),
             ),
@@ -757,7 +835,7 @@ class TambahDataTugasPageState extends State<TambahDataTugasPage> {
             CustomDropdownInputTernak(
               label: 'Jenis Tugas Perawatan',
               hintText: 'Pilih jenis tugas',
-              options: ['Tidak berulang', 'Setiap hari', 'Setiap minggu', 'Setiap bulan', 'Setiap tahun', 'Khusus..'], // Contoh pilihan
+              options: _optionsPengulanganTugas,
               selectedValue: _selectedPengulangan,
               onChanged: (value) => setState(() => _selectedPengulangan = value),
             ),

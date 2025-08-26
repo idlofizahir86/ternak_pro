@@ -78,11 +78,11 @@ Widget _buildHeaderSection(BuildContext context) {
       keterangan: "15",
       imagePath: "assets/data_ternak_assets/illustrations/cow_jumlah.png",
     ),
-    StatsTernakItem(
-      title: "Pakan\nHarian",
-      keterangan: "Sudah",
-      imagePath: "assets/data_ternak_assets/illustrations/cow_pakan.png",
-    ),
+    // StatsTernakItem(
+    //   title: "Pakan\nHarian",
+    //   keterangan: "Sudah",
+    //   imagePath: "assets/data_ternak_assets/illustrations/cow_pakan.png",
+    // ),
     StatsTernakItem(
       title: "Ternak\nSakit",
       keterangan: "0",
@@ -98,18 +98,18 @@ Widget _buildHeaderSection(BuildContext context) {
       keterangan: "0",
       imagePath: "assets/data_ternak_assets/illustrations/cow_meninggal.png",
     ),
-    StatsTernakItem(
-      title: "Penyimpanan\nPakan",
-      keterangan: "10 Kg",
-      imagePath: "assets/data_ternak_assets/illustrations/cow_penyimpanan.png",
-    ),
+    // StatsTernakItem(
+    //   title: "Penyimpanan\nPakan",
+    //   keterangan: "10 Kg",
+    //   imagePath: "assets/data_ternak_assets/illustrations/cow_penyimpanan.png",
+    // ),
     StatsTernakItem(
       title: "Rata-rata\nUsia",
       keterangan: "3.4 Thn",
       imagePath: "assets/data_ternak_assets/illustrations/cow_usia.png",
     ),
     StatsTernakItem(
-      title: "Ternak Siap\nPanen",
+      title: "Ternak Siap\nJual",
       keterangan: "2",
       imagePath: "assets/data_ternak_assets/illustrations/cow_panen.png",
     ),

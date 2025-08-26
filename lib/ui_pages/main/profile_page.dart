@@ -1,11 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:ternak_pro/services/api_service.dart';
 import 'package:ternak_pro/shared/widgets/profile_setting_item.dart';
 
 import '../../shared/theme.dart';
 import '../../shared/widgets/custom_image_view.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  bool _isLoading = false; // Menambahkan status loading
+
+  // Fungsi logout yang memanggil metode logout dari ApiService
+  void _logOut() async {
+    setState(() {
+      _isLoading = true; // Mulai loading
+    });
+
+    try {
+      // Memanggil logout melalui instance ApiService
+      await ApiService.logout(context);
+    } catch (e) {
+      print("Error during logout: $e");
+    } finally {
+      setState(() {
+        _isLoading = false; // Selesai loading
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -14,14 +40,46 @@ class ProfilePage extends StatelessWidget {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            _buildHeaderSection(context),
-            _pribadiSettings(context),
-            _aplikasiSettings(context),
-            _panduanSettings(context),
-            _logOutSettings(context),
-            SizedBox(height: 110), // Spacing at the bottom
+            // Jika sedang loading, tampilkan CircularProgressIndicator
+            if (_isLoading)
+              Center(
+                child: CircularProgressIndicator(), // Indikator loading
+              ),
+            if (!_isLoading)  
+              _buildHeaderSection(context),
+              _pribadiSettings(context),
+              _aplikasiSettings(context),
+              _panduanSettings(context),
+              _logOutSettings(context),
+              SizedBox(height: 110), // Spacing at the bottom
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _logOutSettings(BuildContext context) {
+    
+    return Container(
+      margin: EdgeInsets.only(top: 20, left: 24, right: 24),
+      transform: Matrix4.translationValues(0, 0, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          
+          SizedBox(height: 8),
+          
+          ProfileSettingItem(
+            imageUrl: 'assets/profile_assets/icons/ic_out.png', 
+            bgImage: Color(0XFFFFE0D5),
+            menuName: 'Keluar Akun', 
+            placeHolder: '', 
+            onTap: (){
+              // Memanggil fungsi logout saat item di-tap
+              _logOut();
+            }
+          ),
+        ],
       ),
     );
   }
@@ -278,25 +336,5 @@ Widget _buildHeaderSection(BuildContext context) {
     );
   }
 
-  Widget _logOutSettings(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.only(top: 20, left: 24, right: 24),
-      transform: Matrix4.translationValues(0, 0, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          
-          SizedBox(height: 8),
-          
-          ProfileSettingItem(
-            imageUrl: 'assets/profile_assets/icons/ic_out.png', 
-            bgImage: Color(0XFFFFE0D5),
-            menuName: 'Keluar Akun', 
-            placeHolder: '', 
-            onTap: (){}
-          ),
-        ],
-      ),
-    );
-  }
+  
 

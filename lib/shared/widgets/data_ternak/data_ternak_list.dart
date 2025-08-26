@@ -6,7 +6,7 @@ import 'custom_drop_down_sehat.dart';
 import 'custom_weight_field.dart';
 
 class DataTernakList extends StatelessWidget {
-  final List<Map<String, String>> ternakList;
+  final List<Map<String, dynamic>> ternakList;
 
   const DataTernakList(this.ternakList, {super.key});
 
@@ -16,10 +16,10 @@ class DataTernakList extends StatelessWidget {
       itemCount: ternakList.length,
       itemBuilder: (context, index) {
         return CustomTernakItem(
-          id: ternakList[index]['id']!,
-          jenis: ternakList[index]['jenis']!,
-          berat: ternakList[index]['berat']!,
-          status: ternakList[index]['status']!,
+          id: ternakList[index]['tag_id'],
+          jenis: ternakList[index]['jenis_kelamin'],
+          berat: ternakList[index]['berat']!.toString(),
+          status: ternakList[index]['kondisi_ternak'],
         );
       },
     );

@@ -1,25 +1,15 @@
 import 'package:flutter/material.dart';
 
+import '../../../models/DailyTaskItem.dart';
+import '../../custom_loading.dart';
 import '../../theme.dart';
 import '../custom_image_view.dart';
 import '../data_ternak/show_tugas_edit_modal.dart';
+import '../onboarding_buttom.dart';
 
-// Define the DailyTaskItem class
-class DailyTaskItem {
-  final String title;
-  final String status;
-  final String time;
-  final String iconPath;
 
-  DailyTaskItem({
-    required this.title,
-    required this.status,
-    required this.time,
-    required this.iconPath,
-  });
-}
 
-Widget buildDailyTasks(BuildContext context, List<DailyTaskItem>? tasks) {
+Widget buildDailyTasks(BuildContext context, List<DailyTaskItem>? tasks, bool isLoading) {
   return Container(
     margin: EdgeInsets.only(left: 24, right: 24, top: 8),
     child: Column(
@@ -34,20 +24,18 @@ Widget buildDailyTasks(BuildContext context, List<DailyTaskItem>? tasks) {
             ),
             GestureDetector(
               onTap: () {
-                Navigator.pushNamed(context, '/tambah-data-tugas');
+                 Navigator.pushNamed(
+                  context,
+                  '/list-data-ternak-tugas',
+                  arguments: {'initialIndex': 1},
+                );
               },
               child: Row(
                 children: [
-                  CustomImageView(
-                    imagePath: "assets/home_assets/icons/ic_plus.png",
-                    height: 20,
-                    width: 20,
-                  ),
-                  SizedBox(width: 4),
                   Text(
-                    'Tambah Tugas',
+                    'Lihat Semua',
                     style: AppTextStyle.semiBold.copyWith(
-                      color: AppColors.black100,
+                      color: AppColors.green01,
                       fontSize: 12,
                     ),
                   ),
@@ -56,9 +44,11 @@ Widget buildDailyTasks(BuildContext context, List<DailyTaskItem>? tasks) {
             ),
           ],
         ),
-        if (tasks == null || tasks.isEmpty)
+        if (isLoading) 
+          Center(child: TernakProBoxLoading()),
+        if (tasks == null || tasks.isEmpty && !isLoading)
           SizedBox(height: 8),
-        if (tasks == null || tasks.isEmpty)
+        if (tasks == null || tasks.isEmpty && !isLoading)
           Container(
             padding: EdgeInsets.all(32),
             width: double.infinity,
@@ -99,39 +89,48 @@ Widget buildDailyTasks(BuildContext context, List<DailyTaskItem>? tasks) {
         else
           ...tasks.map((task) => buildTaskItem(context, task)),
         SizedBox(height: 16),
-        GestureDetector(
-          onTap: () {
-            Navigator.pushNamed(
-              context,
-              '/list-data-ternak-tugas',
-              arguments: {'initialIndex': 1},
-            );
-          },
-          child: Container(
-            width: double.infinity,
-            padding: EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              gradient: AppColors.gradasi01WithOpacity20,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'Lihat Lainnya →',
-                  style: AppTextStyle.semiBold.copyWith(
-                    color: AppColors.green01,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
+        // GestureDetector(
+        //   onTap: () {
+        //     Navigator.pushNamed(context, '/tambah-data-tugas');
+        //   },
+        //   child: Container(
+        //     width: double.infinity,
+        //     padding: EdgeInsets.all(12),
+        //     decoration: BoxDecoration(
+        //       gradient: AppColors.gradasi01WithOpacity20,
+        //       borderRadius: BorderRadius.circular(12),
+        //     ),
+        //     child: Row(
+        //       mainAxisAlignment: MainAxisAlignment.center,
+        //       children: [
+        //         CustomImageView(
+        //             imagePath: "assets/home_assets/icons/ic_plus.png",
+        //             height: 20,
+        //             width: 20,
+        //           ),
+        //           SizedBox(width: 4),
+        //           Text(
+        //             'Tambah Tugas',
+        //             style: AppTextStyle.semiBold.copyWith(
+        //               color: AppColors.black100,
+        //               fontSize: 12,
+        //             ),
+        //           ),
+        //       ],
+        //     ),
+        //   ),
+        // ),
+        OnboardingButton(
+          previous: false,
+          text: "+ Tambah Tugas",
+          width: double.infinity,
+          onClick: () => Navigator.pushNamed(context, '/tambah-data-tugas'),
         ),
       ],
     ),
   );
 }
+
 
 Widget buildTaskItem(BuildContext context, DailyTaskItem task) {
   return LayoutBuilder(
@@ -207,12 +206,13 @@ Widget buildTaskItem(BuildContext context, DailyTaskItem task) {
                             title: task.title,
                             status: task.status,
                             time: task.time,
+                            catatan: task.catatan,
                             iconPath: task.iconPath,
-                            onSave: ({required String status, required String time, required String note}) {
+                            onSave: ({required String status, required String time, required String catatan}) {
                               // TODO: simpan ke state/BLoC/API sesuai kebutuhanmu
                               // contoh:
-                              // context.read<TugasCubit>().updateTugas(title, status, time, note);
-                              debugPrint('SAVE -> status:$status  time:$time  note:$note  title:$task.title');
+                              // context.read<TugasCubit>().updateTugas(title, status, time, catatan);
+                              // debugPrint('SAVE -> status:$status  time:$time  catatan:$catatan  title:$task.title');
                             },
                           );
                           },
