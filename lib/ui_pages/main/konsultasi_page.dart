@@ -168,43 +168,65 @@ Widget _buildKonsultasiServices(BuildContext context) {
           SizedBox(height: 8),
           KonsultasiItemCard(
             imagePath: 'assets/konsultasi_assets/icons/ic_konsul_1.png',
-            title: 'Rekomendasi Ternak Potensial',
-            description: 'Cari tahu hewan ternak yang cocok dan potensial di wilayah kamu.',
+            title: 'Konsultasi Pakan',
+            description: 'Konsultasi Pakan Dengan Para Pakar Dibidangnya',
             backgroundColor: AppColors.bgF1,
             bgDescColor: AppColors.bgDescF1,
             onPressed: () {
               // Aksi ketika tombol ditekan
-              Navigator.pushNamed(context, '/rekomendasi-ternak-potensial');
+              Navigator.pushNamed(context, '/konsultasi-pakan');
             },
           ),
           KonsultasiItemCard(
             imagePath: 'assets/konsultasi_assets/icons/ic_konsul_2.png',
-            title: 'Harga Pasar Hari Ini',
-            description: 'Pantau Harga Standar Produk Ternak Dipasaran',
-            backgroundColor: AppColors.bgF2,
-            bgDescColor: AppColors.bgDescF2,
-            onPressed: () {
-              // Aksi ketika tombol ditekan
-              Navigator.pushNamed(context, '/harga-pasar');
-            },
-          ),
-          KonsultasiItemCard(
-            imagePath: 'assets/konsultasi_assets/icons/ic_konsul_3.png',
             title: 'Perkiraan Biaya Pakan',
             description: 'Hitung Biaya Pengeluaran Pakan Untuk Ternakmu Jadi Lebih Mudah',
-            backgroundColor: AppColors.bgF3,
-            bgDescColor: AppColors.bgDescF3,
+            backgroundColor: AppColors.bgF2,
+            bgDescColor: AppColors.bgDescF2,
             onPressed: () {
               // Aksi ketika tombol ditekan
               Navigator.pushNamed(context, '/perkiraan-biaya-pakan');
             },
           ),
           KonsultasiItemCard(
+            imagePath: 'assets/konsultasi_assets/icons/ic_konsul_3.png',
+            title: 'Supplier Limbah Pakan',
+            description: 'Cari Penyedia Limbah Pakan Untuk Ternakmu Lebih Mudah dan Hemat',
+            backgroundColor: AppColors.bgF3,
+            bgDescColor: AppColors.bgDescF3,
+            onPressed: () {
+              // Aksi ketika tombol ditekan
+              Navigator.pushNamed(context, '/supplier-limbah-pakan');
+            },
+          ),
+          KonsultasiItemCard(
             imagePath: 'assets/konsultasi_assets/icons/ic_konsul_4.png',
-            title: 'Asisten Virtual Peternak',
-            description: 'Asisten AI Untuk Membantu Mengelola Ternakmu',
+            title: 'Harga Pasar Hari Ini',
+            description: 'Pantau Harga Standar Produk Ternak Dipasaran',
             backgroundColor: AppColors.bgF4,
             bgDescColor: AppColors.bgDescF4,
+            onPressed: () {
+              // Aksi ketika tombol ditekan
+              Navigator.pushNamed(context, '/harga-pasar');
+            },
+          ),
+          KonsultasiItemCard(
+            imagePath: 'assets/konsultasi_assets/icons/ic_konsul_5.png',
+            title: 'Rekomendasi Ternak Potensial',
+            description: 'Cari tahu hewan ternak yang cocok dan potensial di wilayah kamu.',
+            backgroundColor: AppColors.bgF5,
+            bgDescColor: AppColors.bgDescF5,
+            onPressed: () {
+              // Aksi ketika tombol ditekan
+              Navigator.pushNamed(context, '/rekomendasi-ternak-potensial');
+            },
+          ),          
+          KonsultasiItemCard(
+            imagePath: 'assets/konsultasi_assets/icons/ic_konsul_6.png',
+            title: 'Asisten Virtual Peternak',
+            description: 'Asisten AI Untuk Membantu Mengelola Ternakmu',
+            backgroundColor: AppColors.bgF6,
+            bgDescColor: AppColors.bgDescF6,
             onPressed: () {
               // Aksi ketika tombol ditekan
               Navigator.pushNamed(

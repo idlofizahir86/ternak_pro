@@ -24,6 +24,8 @@ class AppColors {
 static const Color red600 = Color(0xFFDC2626);
 
   static const Color red = Color(0xFFE53935);
+  static const Color redBg = Color(0xFFFF4116);
+
   static const Color blue = Color(0xFF1F73FF);
   static const Color greyText = Color(0xFF6B7280);
   static const Color divider = Color(0xFFE5E7EB);
@@ -58,17 +60,25 @@ static const Color red600 = Color(0xFFDC2626);
   static const Color lightGreen = Color(0xFFD4E8D4);
   static const Color darkGreen = Color(0xFF065627);
 
-  static const Color bgF1 = Color(0xFF0EBCB1);
-  static const Color bgDescF1 = Color(0xFFECFFFB);
+  static const Color bgF1 = Color(0xFF298FBB);
+  static const Color bgDescF1 = Color(0xFFECF8FF);
 
-  static const Color bgF2 = Color(0xFF22BF7C);
-  static const Color bgDescF2 = Color(0xFFECFFED);
+  static const Color bgF2 = Color(0xFFFFC616);
+  static const Color bgDescF2 = Color(0xFFFFF9EB);
 
-  static const Color bgF3 = Color(0xFFFFC616);
-  static const Color bgDescF3 = Color(0xFFFFF9EB);
+  static const Color bgF3 = Color(0xFFFF4116);
+  static const Color bgDescF3 = Color(0xFFFFF2EB);
 
-  static const Color bgF4 = Color(0xFF1FA2DB);
-  static const Color bgDescF4 = Color(0xFFD6F8FF);
+  static const Color bgF4 = Color(0xFF22BF7C);
+  static const Color bgDescF4 = Color(0xFFECFFED);
+
+  static const Color bgF5 = Color(0xFF0EBCB1);
+  static const Color bgDescF5 = Color(0xFFECFFFB);
+
+  static const Color bgF6 = Color(0xFF1FA2DB);
+  static const Color bgDescF6 = Color(0xFFD6F8FF);
+  
+  
 
   /// 💡 Gradient yang bisa langsung dipanggil
   static const LinearGradient gradasi01 = LinearGradient(

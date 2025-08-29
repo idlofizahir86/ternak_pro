@@ -274,9 +274,25 @@ class ApiService {
   }
 
   // **Supplier Pakan Endpoints**
-  Future<List<dynamic>> getAllKategoriSuplierPakan() async {
-    final response = await _makeRequest(method: 'GET', endpoint: '/suplier-pakan/kategoris');
-    return _handleResponse(response);
+  Future<List<Map<String, dynamic>>> getAllKategoriSuplierPakan() async {
+    final response = await _makeRequest(
+      method: 'GET',
+      endpoint: '/suplier-pakan/kategoris',
+    );
+    
+    if (response.statusCode == 200) {
+        final List<dynamic> tipsKategoris = jsonDecode(response.body);
+
+        return tipsKategoris.map((item) {
+          return {
+            'kategori_id': item['id'],    // Ambil id
+            'kategori_name': item['nama'], // Ambil nama
+          };
+        }).toList();
+        
+      } else {
+        throw Exception('Gagal mengambil data katergori supplier pakan');
+      }
   }
 
   Future<List<dynamic>> getAllSuplierPakan() async {
@@ -336,7 +352,7 @@ class ApiService {
         endpoint: '/keuangan/$tipe/total/$userId',
       );
 
-      print('Full API Response: ${response.body}');  // Untuk memeriksa seluruh response
+      // print('Full API Response: ${response.body}');  // Untuk memeriksa seluruh response
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
@@ -359,7 +375,7 @@ class ApiService {
         endpoint: '/keuangan/$userId',
       );
 
-      print('Full API Response: ${response.body}');  // Untuk memeriksa seluruh response
+      // print('Full API Response: ${response.body}');  // Untuk memeriksa seluruh response
 
       if (response.statusCode == 200) {
         final List<dynamic> keuanganList = jsonDecode(response.body);
@@ -497,7 +513,7 @@ class ApiService {
         endpoint: '/ternak/$userId',
       );
 
-      print('Full API Response: ${response.body}');  // Untuk memeriksa seluruh response
+      // print('Full API Response: ${response.body}');  // Untuk memeriksa seluruh response
 
       if (response.statusCode == 200) {
         final List<dynamic> ternakList = jsonDecode(response.body);
@@ -522,7 +538,7 @@ class ApiService {
         endpoint: '/ternak/$userId',
       );
 
-      print('Full API Response: ${response.body}');  // Untuk memeriksa seluruh response
+      // print('Full API Response: ${response.body}');  // Untuk memeriksa seluruh response
 
       if (response.statusCode == 200) {
         final List<dynamic> ternakList = jsonDecode(response.body);
@@ -565,7 +581,7 @@ class ApiService {
       endpoint: '/hewan/$hewanId',
     );
     final body = jsonDecode(response.body);
-    print('Full API Response: $body');  // Untuk memeriksa seluruh response
+    // print('Full API Response: $body');  // Untuk memeriksa seluruh response
 
     return _handleResponse(response);
   }
@@ -653,7 +669,7 @@ class ApiService {
       endpoint: '/tugas/$userId',
     );
 
-    print('Full API Response: ${response.body}');  // Untuk memeriksa seluruh response
+    // print('Full API Response: ${response.body}');  // Untuk memeriksa seluruh response
 
     if (response.statusCode == 200) {
       final List<dynamic> ternakList = jsonDecode(response.body);

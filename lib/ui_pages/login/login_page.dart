@@ -56,12 +56,8 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     
     // Jika rememberMe true dan token ada, coba auto-login
     if (rememberMe) {
-      final credential = await _apiService.loadCredentials();
-      final token = credential['token'];
-      if (token != null && mounted) {
-        emailController.text = rememberMeData['remember_email'] ?? ''; // Isi emailController
-        passwordController.text = rememberMeData['remember_password'] ?? ''; // Isi passwordController
-      }
+      emailController.text = rememberMeData['remember_email'] ?? ''; // Isi emailController
+      passwordController.text = rememberMeData['remember_password'] ?? ''; // Isi passwordController
     }
   }
 
