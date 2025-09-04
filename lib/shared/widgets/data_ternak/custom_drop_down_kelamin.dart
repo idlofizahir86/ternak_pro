@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 import '../../theme.dart';
 
-class CustomDropdownSehat extends StatefulWidget {
+class CustomDropDownKelamin extends StatefulWidget {
   final String status; // Tambahkan parameter status untuk menerima nilai default
   final ValueChanged<String>? onChanged; // Callback untuk perubahan nilai
 
-  const CustomDropdownSehat({
+  const CustomDropDownKelamin({
     super.key,
     required this.status,
     this.onChanged, // Opsional, bisa null
   });
 
   @override
-  CustomDropdownSehatState createState() => CustomDropdownSehatState();
+  CustomDropDownKelaminState createState() => CustomDropDownKelaminState();
 }
 
-class CustomDropdownSehatState extends State<CustomDropdownSehat> {
+class CustomDropDownKelaminState extends State<CustomDropDownKelamin> {
   late String _selectedValue;
 
   @override
@@ -31,7 +31,7 @@ class CustomDropdownSehatState extends State<CustomDropdownSehat> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Kondisi',
+          'Jenis Kelamin',
           style: AppTextStyle.semiBold.copyWith(
             fontSize: 14,
             color: AppColors.black100,
@@ -55,9 +55,7 @@ class CustomDropdownSehatState extends State<CustomDropdownSehat> {
                   children: [
                     // Icon
                     Image.asset(
-                      _selectedValue == 'Sehat'
-                          ? 'assets/home_assets/icons/ic_check_green.png'
-                          : 'assets/home_assets/icons/ic_check_yellow.png',
+                      'assets/home_assets/icons/ic_cow.png',
                       width: 16,
                       height: 16,
                     ),
@@ -100,8 +98,8 @@ class CustomDropdownSehatState extends State<CustomDropdownSehat> {
             height: 150,
             child: Column(
               children: <Widget>[
-                _buildDialogOption('Sehat'),
-                _buildDialogOption('Sakit'),
+                _buildDialogOption('Jantan'),
+                _buildDialogOption('Betina'),
               ],
             ),
           ),
@@ -126,8 +124,8 @@ class CustomDropdownSehatState extends State<CustomDropdownSehat> {
           children: [
             Image.asset(
               value == 'Sehat'
-                  ? 'assets/home_assets/icons/ic_check_green.png'
-                  : 'assets/home_assets/icons/ic_check_yellow.png',
+                  ? 'assets/home_assets/icons/ic_cow.png'
+                  : 'assets/home_assets/icons/ic_cow.png',
               width: 16,
               height: 16,
             ),

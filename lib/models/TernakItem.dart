@@ -37,7 +37,7 @@ class Ternakitem {
       kondisiTernak: json['kondisi_ternak'],
       jenisKelamin: json['jenis_kelamin'],
       tglMulai: json['tgl_mulai'],
-      catatan: json['catatan'],
+      catatan: json['catatan'] ?? '',
     );
   }
 

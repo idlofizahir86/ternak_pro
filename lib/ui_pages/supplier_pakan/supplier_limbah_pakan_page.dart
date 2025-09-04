@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/SupplierPakanItem.dart';
 import '../../services/api_service.dart';
+import '../../shared/custom_loading.dart';
 import '../../shared/theme.dart';
 import '../../shared/widgets/custom_image_view.dart';
 import '../../shared/widgets/supplier_pakan.dart/search_section.dart';
@@ -73,7 +74,7 @@ class SupplierLimbahPakanPageState extends State<SupplierLimbahPakanPage> {
                   future: _kategoriFuture,
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
+                      return const Center(child: TernakProBoxLoading());
                     } else if (snapshot.hasError) {
                       return Center(child: Text('Error: ${snapshot.error}'));
                     } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
@@ -166,6 +167,7 @@ Widget _buildHeaderSection(BuildContext context) {
     ),
   );
 }
+
 class SupplierPakanKategoriItem extends StatelessWidget {
   final bool isActive;
   final String title;

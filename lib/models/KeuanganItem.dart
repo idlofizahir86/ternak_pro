@@ -28,7 +28,7 @@ class KeuanganItem {
       asetId: json['aset_id'] as int,
       namaAset: json['nama_aset'] as String,
       tglKeuangan: DateTime.parse(json['tgl_keuangan'] as String),
-      catatan: json['catatan'] as String,
+      catatan: json['catatan'] ?? '',
     );
   }
 

@@ -1,11 +1,35 @@
 import 'package:flutter/material.dart';
+import 'package:ternak_pro/services/api_service.dart';
 import 'package:ternak_pro/shared/theme.dart';
 import 'package:ternak_pro/shared/widgets/konsultasi/konsultasi_item_card.dart';
 
 import '../../shared/widgets/custom_image_view.dart';
 
-class KonsultasiPage extends StatelessWidget {
+class KonsultasiPage extends StatefulWidget {
   const KonsultasiPage({super.key});
+
+  @override
+  State<KonsultasiPage> createState() => _KonsultasiPageState();
+}
+
+class _KonsultasiPageState extends State<KonsultasiPage> {
+  
+  final ApiService _apiService = ApiService();
+
+  @override
+  void initState() {
+    super.initState();
+    loadUserData();
+  }
+
+  String dataUser = '';
+    Future<void> loadUserData() async {
+      final credential = await _apiService.loadCredentials(); // Await the Future
+      setState(() {
+        dataUser = credential['name'] ?? ''; // Safe access with default value
+      });
+    }
+
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +38,7 @@ class KonsultasiPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeaderSection(context),
+            _buildHeaderSection(context, dataUser),
             _buildKonsultasiServices(context),
             SizedBox(height: 110), // Spacing at the bottom
           ],
@@ -24,7 +48,8 @@ class KonsultasiPage extends StatelessWidget {
   }
 }
 
-Widget _buildHeaderSection(BuildContext context) {
+
+Widget _buildHeaderSection(BuildContext context, String name) {
   double screenHeight = MediaQuery.of(context).size.height; // Mendapatkan tinggi layar
   double headerHeight = screenHeight * 0.33; // 33% dari tinggi layar untuk container
   double imageHeight = screenHeight * 0.33; // 33% dari tinggi layar untuk gambar
@@ -69,7 +94,7 @@ Widget _buildHeaderSection(BuildContext context) {
               Transform.rotate(
                 angle: -0.0227, // 1.3 derajat dalam radian
                 child: Text(
-                  'Halo Khoiru Rizki Bani Adam',
+                  name,
                   style: AppTextStyle.semiBold.copyWith(
                     color: Colors.white,
                     fontSize: 16,

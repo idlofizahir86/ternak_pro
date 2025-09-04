@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:ternak_pro/shared/custom_loading.dart';
 import '../../services/chat_service.dart';
 import '../../shared/theme.dart';
 
@@ -340,7 +341,7 @@ class _AsistenVirtualPageState extends State<AsistenVirtualPage> {
                     SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      child: TernakProBoxLoading(),
                     ),
                     SizedBox(width: 8),
                     Text('AI sedang mengetik...', 

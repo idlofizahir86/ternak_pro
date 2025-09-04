@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../../shared/custom_loading.dart';
 import '../../shared/theme.dart';
 import '../../shared/widgets/custom_image_view.dart';
 import '../../shared/widgets/onboarding_buttom.dart';
@@ -734,19 +735,45 @@ class TambahDataTugasPageState extends State<TambahDataTugasPage> {
   String _selectedTugas = '';
   String _selectedStatus = '';
   String _selectedPengulangan = '1'; // Default ke "Tidak Pernah" (id: 1)
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _getJenisTugas();  // Ganti 'user_id' dengan ID pengguna yang sesuai
-    _getPengulanganTugas();  // Ganti 'user_id' dengan ID pengguna yang sesuai
-    _getStatusTugas();  // Ganti 'user_id' dengan ID pengguna yang sesuai
+    _loadAllData();
   }
   
   // Mendapatkan daftar jenis tugas dari API
   Future<void> loadUserId() async {
     final credential = await _apiService.loadCredentials();
     userId = credential['user_id'];
+  }
+
+  Future<void> _loadAllData() async {
+    try {
+      // Jalankan semua Future secara paralel dan tunggu hingga selesai
+      await Future.wait([
+        _getJenisTugas(),
+        _getPengulanganTugas(),
+        _getStatusTugas(),
+      ]);
+
+      // Setelah semua Future selesai, ubah _isLoading menjadi false
+      setState(() {
+        _isLoading = false;
+      });
+    } catch (e) {
+      // Tangani error jika ada
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal memuat data: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Future<void> _getJenisTugas() async {
@@ -775,6 +802,12 @@ class TambahDataTugasPageState extends State<TambahDataTugasPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: TernakProBoxLoading()),
+      );
+    }
+    
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(MediaQuery.of(context).size.height * 0.12),

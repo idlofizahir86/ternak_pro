@@ -169,6 +169,7 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
     final width = MediaQuery.of(context).size.width;
 
     return Scaffold(
+      resizeToAvoidBottomInset: false, // <- penting: biar keyboard overlay
       body: Stack(
         clipBehavior: Clip.none,
         children: [

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ternak_pro/shared/custom_loading.dart';
 import '../../services/api_service.dart';
 import '../../shared/theme.dart';
@@ -14,6 +15,7 @@ class CustomInputTernakField extends StatelessWidget {
   final int maxLines;
   final bool isCalendar; // Flag untuk menentukan apakah akan menampilkan DatePicker
   final TextInputType? keyboardType;
+  final bool readOnly;
 
   const CustomInputTernakField({super.key, 
     required this.label,
@@ -22,6 +24,7 @@ class CustomInputTernakField extends StatelessWidget {
     this.maxLines = 1,
     this.isCalendar = false, // Default false
     this.keyboardType,
+    this.readOnly = false,
   });
 
   @override
@@ -39,9 +42,10 @@ class CustomInputTernakField extends StatelessWidget {
         ),
         SizedBox(height: 3),
         TextField(
+          keyboardType: keyboardType,
           maxLines: maxLines,
           controller: controller,
-          readOnly: isCalendar, // Make it read-only if it's a DatePicker
+          readOnly: isCalendar == true ? isCalendar : readOnly, // Make it read-only if it's a DatePicker
           decoration: InputDecoration(
             hintText: hintText,
             hintStyle: TextStyle(fontSize: 14, color: Colors.black54),
@@ -62,6 +66,8 @@ class CustomInputTernakField extends StatelessWidget {
                     },
                   )
                 : null, // No icon if it's not a calendar
+            fillColor: readOnly ? AppColors.grey20 : Colors.white, // Add background color when read-only
+            filled: readOnly, // Fill only if it's read-only
           ),
           onTap: isCalendar
               ? () async {
@@ -177,11 +183,17 @@ class _CustomDropdownInputTernakState extends State<CustomDropdownInputTernak> {
                   ),
                   value: option['id'].toString(),
                   groupValue: widget.selectedValue,
-                  onChanged: (String? value) {
-                    setState(() {
-                      widget.onChanged(value!);
-                    });
-                    Navigator.of(context).pop();
+                   onChanged: (String? value) {
+                    if (value == '0') {
+                      // Jika memilih id = 0, buka custom modal
+                      _showCustomModal(context);
+                    } else {
+                      // Jika bukan id = 0, perbarui nilai dan tutup dialog
+                      setState(() {
+                        widget.onChanged(value!);
+                      });
+                      Navigator.of(context).pop();
+                    }
                   },
                   activeColor: AppColors.green01,
                   visualDensity: VisualDensity.compact,
@@ -191,6 +203,104 @@ class _CustomDropdownInputTernakState extends State<CustomDropdownInputTernak> {
               }).toList(),
             ),
           ),
+        );
+      },
+    );
+  }
+
+  void _showCustomModal(BuildContext context) {
+    final TextEditingController _namaController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: AppColors.primaryWhite,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          title: Text(
+            'Tambah Tujuan Ternak',
+            style: AppTextStyle.semiBold.copyWith(fontSize: 18, color: AppColors.black100),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _namaController,
+                decoration: InputDecoration(
+                  labelText: 'Nama Tujuan Ternak',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: AppColors.green01),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Tutup modal
+              },
+              child: Text(
+                'Batal',
+                style: AppTextStyle.medium.copyWith(color: AppColors.black100),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final nama = _namaController.text.trim();
+                if (nama.isNotEmpty) {
+                  try {
+                    // Panggil API Service untuk menyimpan tujuan ternak
+                    final credentials = await ApiService().loadCredentials();
+                    final userId = credentials['user_id'];
+                    final newTujuanId = await ApiService.storeTujuanTernak(userId, nama);
+
+                    // Perbarui selectedValue dengan ID baru
+                    setState(() {
+                      widget.onChanged(newTujuanId.toString());
+                    });
+
+                    // Tutup modal custom
+                    Navigator.of(context).pop();
+
+                    // Tutup dialog opsi
+                    Navigator.of(context).pop();
+                  } catch (e) {
+                    // Tampilkan pesan error jika gagal
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Gagal menambahkan tujuan ternak: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Nama tujuan ternak wajib diisi'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.green01,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text(
+                'Simpan',
+                style: AppTextStyle.medium.copyWith(color: AppColors.primaryWhite),
+              ),
+            ),
+          ],
         );
       },
     );
@@ -265,15 +375,16 @@ class TambahDataTernakPageState extends State<TambahDataTernakPage> {
   final TextEditingController _catatanController = TextEditingController();
   final TextEditingController _beratController = TextEditingController();
   final TextEditingController _jumlahController = TextEditingController();
+  final TextEditingController _usiaController = TextEditingController();
 
   bool _isChecked = false;
   String _selectedHewan = '';
   String _selectedRas = '';
   String _selectedTujuanTernak = '';
-  String _selectedUsia = '';
   String _selectedKondisi = '';
   String _selectedJenisKelamin = '';
 
+ 
   List<Map<String, dynamic>> _optionsHewan = [];
   List<Map<String, dynamic>> _optionsRas = [];
   List<Map<String, dynamic>> _optionsTujuanTernak = [];
@@ -287,6 +398,29 @@ class TambahDataTernakPageState extends State<TambahDataTernakPage> {
   void initState() {
     super.initState();
     _loadData();
+    _loadUserName();
+  }
+
+  String _formatToYmd(String input) {
+    try {
+      final d = DateFormat('dd/MM/yyyy').parseStrict(input.trim());
+      return DateFormat('yyyy-MM-dd').format(d);
+    } catch (_) {
+      return input; // fallback kalau user mengetik manual
+    }
+  }
+  
+  // Fungsi untuk mengambil nama dari SharedPreferences
+  Future<void> _loadUserName() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? userName = prefs.getString('name');  // Ambil 'name' dari SharedPreferences
+
+    // Jika 'name' tidak ditemukan, gunakan string default
+    String defaultName = userName != null ? 'Peternakan $userName' : 'Peternakan';
+
+    setState(() {
+      _namaPeternakanController.text = defaultName;  // Set nilai pada _namaPeternakanController
+    });
   }
 
   Future<void> _loadData() async {
@@ -317,38 +451,100 @@ class TambahDataTernakPageState extends State<TambahDataTernakPage> {
   }
 
   Future<void> _saveData() async {
+    // Validasi minimal sebelum kirim
+    if (_selectedHewan.isEmpty || _selectedRas.isEmpty || _selectedTujuanTernak.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pilih hewan, ras, dan tujuan ternak terlebih dahulu')),
+      );
+      return;
+    }
+    if (_tanggalMulaiController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Tanggal mulai belum diisi')),
+      );
+      return;
+    }
+
+    // Map & konversi nilai
+    final int hewanId = int.tryParse(_selectedHewan) ?? 0;
+    final int rasId = int.tryParse(_selectedRas) ?? 0;
+    final int tujuanTernakId = int.tryParse(_selectedTujuanTernak) ?? 0;
+
+    final String tglMulaiYmd = _formatToYmd(_tanggalMulaiController.text);
+    final int? usia = _usiaController.text.trim().isEmpty ? null : int.tryParse(_usiaController.text.trim());
+    final double? berat = _beratController.text.trim().isEmpty ? null : double.tryParse(_beratController.text.trim());
+    final int? jumlahHewan = _isChecked
+        ? null
+        : (_jumlahController.text.trim().isEmpty ? null : int.tryParse(_jumlahController.text.trim()));
+
+    // Field individual
+    final String? tagId = _isChecked
+        ? (_jumlahHewanController.text.trim().isEmpty ? null : _jumlahHewanController.text.trim())
+        : null;
+    final String? kondisiTernak = _isChecked && _selectedKondisi.isNotEmpty ? _selectedKondisi : null;
+    final String? jenisKelamin = _isChecked && _selectedJenisKelamin.isNotEmpty ? _selectedJenisKelamin : null;
+
+    // Validasi cabang sederhana
+    if (_isChecked) {
+      // Individual
+      if (tagId == null || kondisiTernak == null || jenisKelamin == null || berat == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Lengkapi Tag, Kondisi, Jenis Kelamin, dan Berat untuk mode individu')),
+        );
+        return;
+      }
+    } else {
+      // Batch
+      if (jumlahHewan == null || jumlahHewan < 1) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Jumlah hewan minimal 1 untuk mode kelompok')),
+        );
+        return;
+      }
+    }
+
+    setState(() => _isLoading = true);
     try {
-      final data = {
-        'user_id': userId,
-        'nama_peternakan': _namaPeternakanController.text,
-        'tanggal_mulai': _tanggalMulaiController.text,
-        'hewan': _selectedHewan,
-        'ras': _selectedRas,
-        'tujuan_ternak': _selectedTujuanTernak,
-        'usia': _selectedUsia,
-        'catatan': _catatanController.text,
-        'is_individu': _isChecked,
-        if (_isChecked) ...{
-          'nomor_ternak': _jumlahHewanController.text,
-          'kondisi': _selectedKondisi,
-          'jenis_kelamin': _selectedJenisKelamin,
-          'berat': _beratController.text,
-        } else ...{
-          'jumlah_hewan': _jumlahController.text,
-        },
-      };
+      final ok = await _apiService.storeTernak(
+        context: context,
+        userId: userId,
+        namaTernak: _namaPeternakanController.text.trim(), // dipakai sebagai nama_ternak
+        tglMulai: tglMulaiYmd,
+        hewanId: hewanId,
+        rasId: rasId,
+        tujuanTernakId: tujuanTernakId,
+        isIndividual: _isChecked,
+        usia: usia,                      // null → default 0 di backend atau di service
+        tagId: tagId,                    // wajib saat individual
+        kondisiTernak: kondisiTernak,    // wajib saat individual
+        jenisKelamin: jenisKelamin,      // wajib saat individual
+        berat: berat ?? 0,                    // wajib saat individual
+        jumlahHewan: jumlahHewan,        // wajib saat batch
+        catatan: _catatanController.text.trim().isEmpty ? null : _catatanController.text.trim(),
+      );
 
-      // Kirim data ke API (misalnya endpoint POST /ternak)
-      // await _apiService.createTernak(data);
+      setState(() => _isLoading = false);
 
-      // Navigasi ke halaman daftar setelah sukses
-      Navigator.pushNamed(context, '/list-data-ternak-tugas');
+      if (ok) {
+        // Sukses → pindah halaman
+        if (!mounted) return;
+        Navigator.pushNamed(context, '/list-data-ternak-tugas');
+      } else {
+        // Harusnya tidak terjadi karena ok hanya true saat 201
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gagal menyimpan data ternak')),
+        );
+      }
     } catch (e) {
+      setState(() => _isLoading = false);
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Gagal menyimpan data: $e')),
       );
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -396,6 +592,7 @@ class TambahDataTernakPageState extends State<TambahDataTernakPage> {
               label: 'Nama Peternakan',
               hintText: 'Masukkan Nama Peternakanmu',
               controller: _namaPeternakanController,
+              readOnly: true,
             ),
             // Tanggal Mulai
             CustomInputTernakField(
@@ -442,18 +639,12 @@ class TambahDataTernakPageState extends State<TambahDataTernakPage> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: CustomDropdownInputTernak(
-                    label: 'Usia',
-                    hintText: 'Pilih salah satu',
-                    options: const [
-                      {'id': '1', 'nama': '0-6 bulan'},
-                      {'id': '2', 'nama': '6-12 bulan'},
-                      {'id': '3', 'nama': '1-2 tahun'},
-                      {'id': '4', 'nama': '>2 tahun'},
-                    ],
-                    selectedValue: _selectedUsia,
-                    onChanged: (value) => setState(() => _selectedUsia = value),
-                  ),
+                  child:  CustomInputTernakField(
+                  label: 'Usia',
+                  hintText: 'Masukkan usia',
+                  controller: _usiaController,
+                  keyboardType: TextInputType.number,
+                ),
                 ),
               ],
             ),

@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:ffi';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -12,7 +11,7 @@ import '../models/user.dart';
 
 class ApiService {
   // Base URL untuk API
-  static const String _baseUrl = 'https://aquamarine-ferret-962895.hostingersite.com/api/v1';
+  static const String _baseUrl = 'https://ternakpro.id/api/v1';
 
   // Fungsi untuk menyimpan token dan user_id ke SharedPreferences
     Future<void> _saveCredentials(String token, String userId, String email, String noTelepon, String name, int roleId) async {
@@ -117,11 +116,7 @@ class ApiService {
         case 200:
         case 201:
           if (body['status'] == 'success') {
-            if (body['data'] is List) {
               return body['data'];  // Return data if it's a List
-            } else {
-              throw Exception('Data yang diterima bukan List seperti yang diharapkan');
-            }
           } else {
             throw Exception(body['message'] ?? 'Terjadi kesalahan: ${body['errors']}');
           }
@@ -315,10 +310,28 @@ class ApiService {
     return _handleResponse(response);
   }
 
-  // **Konsultasi Pakar Endpoints**
-  Future<List<dynamic>> getAllKategoriKonsultasi() async {
-    final response = await _makeRequest(method: 'GET', endpoint: '/konsultasi-pakar/kategoris');
-    return _handleResponse(response);
+  //***************************************************Konsultasi Pakan Endpoints*******************************************************
+  //***************************************************Konsultasi Pakan Endpoints*******************************************************
+  //***************************************************Konsultasi Pakan Endpoints*******************************************************
+  Future<List<Map<String, dynamic>>> getAllKategoriKonsultasi() async {
+    final response = await _makeRequest(
+      method: 'GET',
+      endpoint: '/konsultasi-pakar/kategoris',
+    );
+    
+    if (response.statusCode == 200) {
+        final List<dynamic> tipsKategoris = jsonDecode(response.body);
+
+        return tipsKategoris.map((item) {
+          return {
+            'kategori_id': item['id'],    // Ambil id
+            'kategori_name': item['nama'], // Ambil nama
+          };
+        }).toList();
+        
+      } else {
+        throw Exception('Gagal mengambil data katergori konsultasi pakan');
+      }
   }
 
   Future<List<dynamic>> getAllKonsultasiPakar() async {
@@ -375,7 +388,7 @@ class ApiService {
         endpoint: '/keuangan/$userId',
       );
 
-      // print('Full API Response: ${response.body}');  // Untuk memeriksa seluruh response
+      print('Full API Response: ${response.body}');  // Untuk memeriksa seluruh response
 
       if (response.statusCode == 200) {
         final List<dynamic> keuanganList = jsonDecode(response.body);
@@ -415,6 +428,7 @@ class ApiService {
         endpoint: '/keuangan',
         body: payload,
       );
+
 
       if (response.statusCode == 302) {
         final redirectUrl = response.headers['location'];
@@ -501,6 +515,8 @@ class ApiService {
     return _handleResponse(response);
   }
 
+  
+
   //***************************************************Ternak Endpoints*******************************************************
   //***************************************************Ternak Endpoints*******************************************************
   //***************************************************Ternak Endpoints*******************************************************
@@ -549,6 +565,119 @@ class ApiService {
       }
     } catch (e) {
       throw Exception('Error saat mengambil data ternak: $e');
+    }
+  }
+
+  Future<bool> storeTernak({
+    required String userId,
+    required String namaTernak,
+    required String tglMulai,          // format 'YYYY-MM-DD'
+    required int hewanId,
+    required int rasId,
+    required int tujuanTernakId,
+    required bool isIndividual,        // true: individual, false: batch
+    int? usia,
+    String? tagId,                     // wajib saat individual (sesuai backend)
+    String? kondisiTernak,
+    String? jenisKelamin,
+    double? berat,
+    int? jumlahHewan,                  // wajib saat batch (sesuai backend)
+    String? catatan,
+    
+    required BuildContext context // Menambahkan BuildContext di sini
+  }) async {
+    try {
+
+      // Buat payload dasar untuk semua kasus
+      final payload = <String, dynamic>{
+        'user_id': userId,
+        'nama_ternak': namaTernak,
+        'tgl_mulai': tglMulai,
+        'hewan_id': hewanId,
+        'ras_id': rasId,
+        'tujuan_ternak_id': tujuanTernakId,
+        'is_individual': isIndividual,
+        'catatan': catatan,
+      };
+
+      // Tambahkan field khusus untuk isIndividual = true
+      if (isIndividual) {
+        payload.addAll({
+          'tag_id': tagId,
+          'kondisi_ternak': kondisiTernak,
+          'jenis_kelamin': jenisKelamin,
+          'berat': berat,
+          'usia': usia ?? 0,
+        });
+      } else {
+        // Tambahkan field khusus untuk isIndividual = false
+        payload['jumlah_hewan'] = jumlahHewan;
+      }
+
+      final response = await _makeRequest(
+        method: 'POST',
+        endpoint: '/ternak',
+        body: payload,
+      );
+
+      if (response.statusCode == 302) {
+        final redirectUrl = response.headers['location'];
+        if (redirectUrl != null) {
+          print('Redirect to: $redirectUrl');
+          Navigator.pushNamed(context, '/list-data-ternak-tugas');  // Navigasi ke halaman sebelumnya dengan hasil true
+          throw Exception('Redirect to: $redirectUrl');
+        }
+      }
+
+      if (response.statusCode == 201) {
+        return true; // sukses create
+      }
+
+      // Tangani error umum & validasi biar pesannya informatif
+      if (response.statusCode == 422) {
+        final body = jsonDecode(response.body);
+        throw Exception('Validasi gagal: ${body['errors'] ?? body}');
+      }
+
+      throw Exception('Gagal menyimpan data ternak: '
+          '${response.statusCode} - ${response.body}');
+    } catch (e) {
+      throw Exception('Error saat menyimpan data ternak: $e');
+    }
+  }
+
+  Future<void> updateDataTernak({
+    required String userId,
+    required int idTernak,
+    required String jenisKelamin,
+    required String kondisiTernak,
+    required String berat,
+    String? catatan,
+  }) async {
+    try {
+      final credentials = await loadCredentials();
+      final userId = credentials['user_id'];
+      final response = await http.put(
+        Uri.parse('$_baseUrl/ternak/$userId/$idTernak'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          'jenis_kelamin': jenisKelamin,
+          'kondisi_ternak': kondisiTernak,
+          'berat': double.parse(berat),
+          'catatan': catatan,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return; // Sukses, tidak perlu mengembalikan data kecuali diperlukan
+      } else {
+        throw Exception('Gagal memperbarui data ternak: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error memperbarui data ternak: $e');
     }
   }
 
@@ -630,6 +759,31 @@ class ApiService {
       } else {
         throw Exception('Gagal mengambil data tugas');
       }
+  }
+
+  static Future<int> storeTujuanTernak(String userId, String nama) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/tujuan/ternak/$userId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          'user_id': userId,
+          'nama': nama,
+        }),
+      );
+
+      if (response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        return data['id']; // Asumsi API mengembalikan ID tujuan ternak yang baru
+      } else {
+        throw Exception('Gagal menyimpan tujuan ternak: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error menyimpan tujuan ternak: $e');
+    }
   }
 
   

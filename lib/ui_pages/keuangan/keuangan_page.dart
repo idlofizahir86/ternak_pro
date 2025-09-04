@@ -16,10 +16,28 @@ class KeuanganPage extends StatefulWidget {
 }
 
 class _KeuanganPageState extends State<KeuanganPage> {
+  final ApiService _apiService = ApiService(); // Initialize your ApiService
+
+  @override
+  void initState() {
+    super.initState();
+    loadUserData();
+    _fetchKeuanganData(_apiService);
+  }
   // Method untuk memuat ulang data setelah menerima true
   void _refreshPage() {
     setState(() {
+      loadUserData();
+      _fetchKeuanganData(_apiService);
       // Logika refresh atau pemanggilan ulang API atau data yang diperlukan
+    });
+  }
+
+  String dataUser = '';
+  Future<void> loadUserData() async {
+    final credential = await _apiService.loadCredentials(); // Await the Future
+    setState(() {
+      dataUser = credential['name'] ?? ''; // Safe access with default value
     });
   }
   
@@ -33,7 +51,7 @@ class _KeuanganPageState extends State<KeuanganPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildHeaderSection(context),
+                _buildHeaderSection(context, dataUser),
                 _buildKeuanganContent(context),
                 const SizedBox(height: 150), // ruang untuk bottom nav
               ],
@@ -88,7 +106,7 @@ class _FloatingAddButton extends StatelessWidget {
 }
 
 
-Widget _buildHeaderSection(BuildContext context) {
+Widget _buildHeaderSection(BuildContext context, String name) {
   double screenHeight = MediaQuery.of(context).size.height; // Mendapatkan tinggi layar
   double headerHeight = screenHeight * 0.25; // 33% dari tinggi layar untuk container
   double imageHeight = screenHeight * 0.33; // 33% dari tinggi layar untuk gambar
@@ -131,7 +149,7 @@ Widget _buildHeaderSection(BuildContext context) {
               Transform.rotate(
                 angle: -0.0227, // 1.3 derajat dalam radian
                 child: Text(
-                  'Halo Khoiru Rizki Bani Adam',
+                  'Halo, $name',
                   style: AppTextStyle.semiBold.copyWith(
                     color: Colors.white,
                     fontSize: 16,

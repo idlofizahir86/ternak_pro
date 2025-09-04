@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ternak_pro/cubit/konsultasi_page_cubit.dart';
 import 'package:ternak_pro/cubit/tab_keuangan_cubit.dart';
 import 'package:ternak_pro/ui_pages/asisten_virtual/asisten_virtual_page.dart';
@@ -47,7 +48,7 @@ void main() async {
 
   // TODO: HANYA UNTUK BUILD WEB
   // Periksa localStorage terlebih dahulu
-  // checkLoginStatus();
+  checkLoginStatus();
 
   // Init data locale untuk intl (wajib biar DateFormat 'id_ID' ga error)
   await initializeDateFormatting('id_ID', null);
@@ -71,48 +72,48 @@ void main() async {
 
 
 // TODO: HANYA UNTUK BUILD WEB
-// void checkLoginStatus() async {
-//   // Cek apakah data sudah ada di localStorage
-//   final prefs = await SharedPreferences.getInstance();
+void checkLoginStatus() async {
+  // Cek apakah data sudah ada di localStorage
+  final prefs = await SharedPreferences.getInstance();
 
-//     // Cek apakah token ada di shared_preferences
-//     final token = prefs.getString('token');
-//     final userId = prefs.getString('user_id');
-//     final email = prefs.getString('email');
-//     final name = prefs.getString('name');
-//     final roleId = prefs.getInt('role_id');
+    // Cek apakah token ada di shared_preferences
+    final token = prefs.getString('token');
+    final userId = prefs.getString('user_id');
+    final email = prefs.getString('email');
+    final name = prefs.getString('name');
+    final roleId = prefs.getInt('role_id');
 
-//   // Else If: Jika data sudah ada di localStorage, ijinkan untuk melanjutkan
-//   if (token != null && userId != null && name != null && email != null && roleId != null) {
-//     print('User already authenticated with localStorage data');
-//     // Lanjutkan tanpa melakukan apa-apa
-//   } 
-//   // Jika tidak ada data di localStorage, periksa query parameters
-//   else {
-//     // Mengambil data dari query string di URL
-//     final urlParams = html.window.location.search;
-//     final uri = Uri.parse('http://dummy$urlParams');  // Membuat URL yang valid untuk mengurai query params
-//     final tokenFromURL = uri.queryParameters['flutter.token'];
-//     final userIdFromURL = uri.queryParameters['flutter.user_id'];
-//     final nameFromURL = uri.queryParameters['flutter.name'];
-//     final emailFromURL = uri.queryParameters['flutter.email'];
+  // Else If: Jika data sudah ada di localStorage, ijinkan untuk melanjutkan
+  if (token != null && userId != null && name != null && email != null && roleId != null) {
+    print('User already authenticated with localStorage data');
+    // Lanjutkan tanpa melakukan apa-apa
+  } 
+  // Jika tidak ada data di localStorage, periksa query parameters
+  else {
+    // Mengambil data dari query string di URL
+    final urlParams = html.window.location.search;
+    final uri = Uri.parse('http://dummy$urlParams');  // Membuat URL yang valid untuk mengurai query params
+    final tokenFromURL = uri.queryParameters['flutter.token'];
+    final userIdFromURL = uri.queryParameters['flutter.user_id'];
+    final nameFromURL = uri.queryParameters['flutter.name'];
+    final emailFromURL = uri.queryParameters['flutter.email'];
 
-//     // Jika data valid, simpan ke localStorage
-//     if (tokenFromURL != null && userIdFromURL != null && nameFromURL != null && emailFromURL != null) {
-//       html.window.localStorage['flutter.token'] = tokenFromURL;
-//       html.window.localStorage['flutter.user_id'] = userIdFromURL;
-//       html.window.localStorage['flutter.name'] = nameFromURL;
-//       html.window.localStorage['flutter.email'] = emailFromURL;
-//       print('User data saved to localStorage');
+    // Jika data valid, simpan ke localStorage
+    if (tokenFromURL != null && userIdFromURL != null && nameFromURL != null && emailFromURL != null) {
+      html.window.localStorage['flutter.token'] = tokenFromURL;
+      html.window.localStorage['flutter.user_id'] = userIdFromURL;
+      html.window.localStorage['flutter.name'] = nameFromURL;
+      html.window.localStorage['flutter.email'] = emailFromURL;
+      print('User data saved to localStorage');
 
-//       // Menghapus query string dari URL tanpa reload
-//       html.window.location.href = 'https://app.ternakpro.id';
-//     } else {
-//       // Jika data tidak valid, redirect ke login
-//       html.window.location.href = 'https://ternakpro.id/login';
-//     }
-//   }
-// }
+      // Menghapus query string dari URL tanpa reload
+      html.window.location.href = 'https://app.ternakpro.id';
+    } else {
+      // Jika data tidak valid, redirect ke login
+      html.window.location.href = 'https://ternakpro.id/login';
+    }
+  }
+}
 
 
 class MyApp extends StatelessWidget {
@@ -155,9 +156,7 @@ class MyApp extends StatelessWidget {
         // initialRoute: '/',
         routes: {
         // TODO: HANYA UNTUK BUILD WEB
-          // '/': (context) => const MainPageMobile(),
-
-          '/': (context) => const SplashPage(),
+          '/': (context) => const MainPageMobile(),
           
           '/main': (context) => MainPageMobile(),
           

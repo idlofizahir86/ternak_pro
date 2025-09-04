@@ -430,12 +430,13 @@ Widget _buildHeaderSection(BuildContext context, String greeting, String formatt
                           SizedBox(width: 8),
                           _isLoadingLocation
                               ? SizedBox(
-                                  height: 24,
-                                  width: 24,
                                   child: TernakProBoxLoading(),
                                 )
-                              : SizedBox(
-                                  width: screenWidth * 0.5, // Limit width to prevent overflow
+                              : Container(
+                                  width: screenWidth * 0.5,
+                                  constraints: BoxConstraints(
+                                    maxWidth: 200, // Batasi lebar maksimum ke 50% layar
+                                  ),
                                   child: Text(
                                     _currentAddress ?? 'Tambahkan Lokasi',
                                     style: AppTextStyle.medium.copyWith(fontSize: 14),

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../cubit/tab_keuangan_cubit.dart';
 import '../../models/KeuanganItem.dart';
 import '../../services/api_service.dart';
+import '../../shared/custom_loading.dart';
 import '../../shared/theme.dart';
 import '../../shared/widgets/keuangan/custom_app_bar.dart';
 import '../../shared/widgets/keuangan/custom_tab_bar.dart';
@@ -26,6 +27,7 @@ class TambahDataKeuanganPageState extends State<TambahDataKeuanganPage> with Sin
   String _selectedAset = '';
   final ApiService _apiService = ApiService();
   String _userId = '';
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -34,10 +36,17 @@ class TambahDataKeuanganPageState extends State<TambahDataKeuanganPage> with Sin
     _loadUserId();
   }
 
+  List<Map<String, dynamic>> _optionAsset = [];
+
   Future<void> _loadUserId() async {
     final credential = await _apiService.loadCredentials();
     setState(() {
       _userId = credential['user_id'];
+    });
+    final asset = await _apiService.getAsset(_userId);
+    _optionAsset = asset;
+    setState(() {
+      _isLoading = false;
     });
   }
 
@@ -52,6 +61,11 @@ class TambahDataKeuanganPageState extends State<TambahDataKeuanganPage> with Sin
   }
 
   Future<void> _saveKeuangan(String activePage) async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    loadAssetId();
     try {
       // Validasi input
       if (_tanggalController.text.isEmpty ||
@@ -63,19 +77,29 @@ class TambahDataKeuanganPageState extends State<TambahDataKeuanganPage> with Sin
         return;
       }
 
+      final assetData = await _apiService.getAsset(_userId);
+
+      // Jika _selectedAset kosong ('') maka set menjadi -1
+      if (_selectedAset.isEmpty) {
+        _selectedAset = '-1';  // Mengubah _selectedAset menjadi string '-1'
+      }
+
+      // Coba untuk parsing _selectedAset menjadi int
+      final asetId = int.tryParse(_selectedAset) ?? -1;
+
+      print('Aset ID: $asetId'); // Output Aset ID
+      
+      // Menampilkan data terkait aset berdasarkan asetId
+      final selectedAsset = assetData.firstWhere(
+        (item) => item['id'] == asetId,
+        orElse: () => {'id': -1}, // Jika tidak ditemukan, kembalikan id -1
+      );
+
       // Konversi tanggal dari dd/MM/yyyy ke YYYY-MM-DD
       final inputFormat = DateFormat('dd/MM/yyyy');
       final outputFormat = DateFormat('yyyy-MM-dd');
       final tglKeuangan = inputFormat.parse(_tanggalController.text);
       final formattedTglKeuangan = outputFormat.format(tglKeuangan);
-
-      // Pemetaan aset ke asetId
-      final asetMap = {
-        'Tunai': 1,
-        'Bank': 2,
-        'E-Wallet': 3,
-      };
-      final asetId = asetMap[_selectedAset] ?? 0;
 
       // Buat KeuanganItem
       final keuanganItem = KeuanganItem(
@@ -91,17 +115,50 @@ class TambahDataKeuanganPageState extends State<TambahDataKeuanganPage> with Sin
 
       // Simpan ke API
       final result = await _apiService.storeKeuangan(keuanganItem, _userId, context);
+      
+      setState(() {
+        _isLoading = false;
+      });
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Data keuangan berhasil disimpan')),
       );
       Navigator.pop(context, true); // Kembali ke halaman sebelumnya dengan hasil true
     } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Gagal menyimpan data keuangan: $e')),
       );
     }
   }
 
+  // Ambil data aset dari API
+  Future<void> loadAssetId() async {
+    // Ambil data aset dari API
+    final assetData = await _apiService.getAsset(_userId);
+
+    // Jika _selectedAset kosong ('') maka set menjadi -1
+    if (_selectedAset.isEmpty) {
+      _selectedAset = '-1';  // Mengubah _selectedAset menjadi string '-1'
+    }
+
+    // Coba untuk parsing _selectedAset menjadi int
+    final asetId = int.tryParse(_selectedAset) ?? -1;
+
+    print('Aset ID: $asetId'); // Output Aset ID
+    
+    // Menampilkan data terkait aset berdasarkan asetId
+    final selectedAsset = assetData.firstWhere(
+      (item) => item['id'] == asetId,
+      orElse: () => {'id': -1}, // Jika tidak ditemukan, kembalikan id -1
+    );
+
+    print('Selected Asset: ${selectedAsset['nama']}'); // Menampilkan nama aset terpilih
+  }
+
+  
   @override
   Widget build(BuildContext context) {
     final args = ModalRoute.of(context)?.settings.arguments;
@@ -109,6 +166,12 @@ class TambahDataKeuanganPageState extends State<TambahDataKeuanganPage> with Sin
       final Map m when m['initialIndex'] is int => m['initialIndex'] as int,
       _ => 0,
     };
+
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: TernakProBoxLoading()),
+      );
+    }
 
     return BlocProvider(
       create: (_) => TabKeuanganCubit(initialIndex),
@@ -165,9 +228,14 @@ class TambahDataKeuanganPageState extends State<TambahDataKeuanganPage> with Sin
                             CustomDropdownInputKeuangan(
                               label: 'Aset',
                               hintText: 'Pilih Aset',
-                              options: ['Tunai', 'Bank', 'E-Wallet'],
+                              options: _optionAsset,
                               selectedValue: _selectedAset,
-                              onChanged: (value) => setState(() => _selectedAset = value),
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedAset = value; // Update selected asset
+                                });
+                                loadAssetId(); // Panggil fungsi untuk update ID setelah perubahan
+                              },
                             ),
                             CustomInputKeuanganField(
                               label: 'Catatan (Opsional)',
@@ -208,7 +276,7 @@ class TambahDataKeuanganPageState extends State<TambahDataKeuanganPage> with Sin
                             CustomDropdownInputKeuangan(
                               label: 'Aset',
                               hintText: 'Pilih Aset',
-                              options: ['Tunai', 'Bank', 'E-Wallet'],
+                              options: _optionAsset,
                               selectedValue: _selectedAset,
                               onChanged: (value) => setState(() => _selectedAset = value),
                             ),
@@ -241,7 +309,7 @@ class TambahDataKeuanganPageState extends State<TambahDataKeuanganPage> with Sin
 class CustomDropdownInputKeuangan extends StatefulWidget {
   final String label;
   final String hintText;
-  final List<String> options;
+  final List<Map<String, dynamic>> options;
   final String selectedValue;
   final Function(String) onChanged;
 
@@ -267,6 +335,29 @@ class _CustomDropdownInputKeuanganState extends State<CustomDropdownInputKeuanga
     selectedValue = widget.selectedValue;
   }
 
+  String _getSelectedName(String selectedValue) {
+    // Mengonversi selectedValue menjadi int
+    final int selectedId = int.tryParse(selectedValue) ?? -1; // Default ke -1 jika gagal
+
+    // Mencari nama berdasarkan selectedValue (id)
+    final option = widget.options.firstWhere(
+      (option) => option['id'] == selectedId, // Membandingkan dengan id setelah di-convert
+      orElse: () => {'nama': ''}, // Jika tidak ditemukan, kembalikan nama kosong
+    );
+
+    return option['nama'] ?? ''; // Mengembalikan nama jika ditemukan
+  }
+
+  String _getSelectedId(String selectedTitle) {
+      // Mencari id berdasarkan selectedTitle (nama)
+      final option = widget.options.firstWhere(
+        (option) => option['nama'] == selectedTitle,
+        orElse: () => {'id': -1}, // Jika tidak ditemukan, kembalikan id -1
+      );
+
+      return option['id'].toString(); // Mengembalikan id jika ditemukan
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -289,7 +380,7 @@ class _CustomDropdownInputKeuanganState extends State<CustomDropdownInputKeuanga
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  widget.selectedValue.isEmpty ? widget.hintText : widget.selectedValue,
+                  widget.selectedValue.isEmpty ? widget.hintText : _getSelectedName(widget.selectedValue),
                   style: AppTextStyle.medium.copyWith(
                     fontSize: 14,
                     color: widget.selectedValue.isEmpty ? AppColors.black01 : AppColors.black100,
@@ -324,17 +415,28 @@ class _CustomDropdownInputKeuanganState extends State<CustomDropdownInputKeuanga
               children: widget.options.map((option) {
                 return RadioListTile<String>(
                   title: Text(
-                    option,
+                    option['nama'].toString(),
                     style: AppTextStyle.medium.copyWith(fontSize: 16, color: AppColors.black100),
                   ),
-                  value: option,
+                  value: option['id'].toString(),
                   groupValue: widget.selectedValue,
                   onChanged: (String? value) {
-                    setState(() {
-                      selectedValue = value!;
-                    });
-                    widget.onChanged(value!);
-                    Navigator.of(context).pop();
+                   if (value != null) {
+                      setState(() {
+                        selectedValue = value;
+                      });
+                      widget.onChanged(value);
+                      Navigator.of(context).pop();
+
+                      // If "Khusus.." is selected, show the recurrence modal
+                      if (value == _getSelectedId('Khusus..')) {
+                        _showRecurrenceModal(context);
+                      }
+
+                      if (value == '0') {
+                        _showRecurrenceModal(context);
+                      }
+                    }
                   },
                   activeColor: AppColors.green01,
                   visualDensity: VisualDensity.compact,
@@ -347,6 +449,40 @@ class _CustomDropdownInputKeuanganState extends State<CustomDropdownInputKeuanga
         );
       },
     );
+  }
+
+  void _showRecurrenceModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return CustomRecurrenceModal(
+          onSave: (recurrenceData) {
+            // Handle the saved recurrence data if needed
+            Navigator.pop(context);
+          },
+        );
+      },
+    );
+  }
+}
+
+class CustomRecurrenceModal extends StatefulWidget {
+  final Function(Map<String, dynamic>) onSave;
+  const CustomRecurrenceModal({super.key, required this.onSave});
+
+  @override
+  State<CustomRecurrenceModal> createState() => _CustomRecurrenceModalState();
+}
+
+class _CustomRecurrenceModalState extends State<CustomRecurrenceModal> {
+  @override
+  Widget build(BuildContext context) {
+    return const Placeholder();
   }
 }
 

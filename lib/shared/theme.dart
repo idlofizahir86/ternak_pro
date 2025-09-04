@@ -43,6 +43,7 @@ static const Color red600 = Color(0xFFDC2626);
   static const Color brown = Color(0xFF606060);
   static const Color grey = Color(0xFF6C7278);
   static const Color grey2 = Color(0xFF595959);
+  static const Color grey3 = Color(0xFFDBDBDB);
   static const Color grey20 = Color(0x336C7278); // 20% opacity
   static const Color transparent = Colors.transparent;
   static const Color blackText = Color(0xFF454545);

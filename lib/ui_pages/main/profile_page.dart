@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:ternak_pro/services/api_service.dart';
 import 'package:ternak_pro/shared/widgets/profile_setting_item.dart';
 
+import '../../shared/custom_loading.dart';
 import '../../shared/theme.dart';
 import '../../shared/widgets/custom_image_view.dart';
 
@@ -40,10 +41,10 @@ class _ProfilePageState extends State<ProfilePage> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // Jika sedang loading, tampilkan CircularProgressIndicator
+            // Jika sedang loading, tampilkan TernakProBoxLoading
             if (_isLoading)
               Center(
-                child: CircularProgressIndicator(), // Indikator loading
+                child: TernakProBoxLoading(), // Indikator loading
               ),
             if (!_isLoading)  
               _buildHeaderSection(context),

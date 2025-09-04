@@ -2,8 +2,13 @@ import 'package:flutter/material.dart';
 
 class CustomWeightField extends StatefulWidget {
   final String berat;
+  final ValueChanged<String>? onChanged; // Callback untuk perubahan nilai
 
-  const CustomWeightField({super.key, required this.berat});
+  const CustomWeightField({
+    super.key,
+    required this.berat,
+    this.onChanged, // Opsional, bisa null
+  });
 
   @override
   CustomWeightFieldState createState() => CustomWeightFieldState();
@@ -20,12 +25,36 @@ class CustomWeightFieldState extends State<CustomWeightField> {
     // Initialize the controller after the widget is created
     _weightController = TextEditingController(text: widget.berat);
 
-    // Listen to focus changes to update when editing starts or stops
+    // Dengarkan perubahan pada controller
+    _weightController.addListener(() {
+      if (_weightController.text != widget.berat) {
+        final value = _weightController.text.trim();
+        if (_isValidWeight(value)) {
+          widget.onChanged?.call(value); // Panggil onChanged jika nilai valid
+        }
+      }
+    });
+
+     // Dengarkan perubahan fokus
     _focusNode.addListener(() {
       setState(() {
         _isEditing = _focusNode.hasFocus;
       });
+      if (!_focusNode.hasFocus && !_isValidWeight(_weightController.text)) {
+        // Kembalikan ke nilai awal jika input tidak valid saat fokus hilang
+        setState(() {
+          _weightController.text = widget.berat;
+          widget.onChanged?.call(widget.berat);
+        });
+      }
     });
+  }
+
+  // Validasi input berat
+  bool _isValidWeight(String value) {
+    if (value.isEmpty) return false;
+    final parsed = double.tryParse(value);
+    return parsed != null && parsed >= 0; // Pastikan nilai numerik dan tidak negatif
   }
 
   @override
@@ -83,8 +112,9 @@ class CustomWeightFieldState extends State<CustomWeightField> {
                             border: InputBorder.none,
                             hintText: 'Masukkan berat badan',
                             isDense: true,
+                            errorText: _isValidWeight(_weightController.text) ? null : 'Masukkan angka valid',
                           ),
-                          keyboardType: TextInputType.number,
+                          keyboardType: TextInputType.numberWithOptions(decimal: true),
                           onEditingComplete: () {
                             // Hide keyboard when done editing
                             _focusNode.unfocus();

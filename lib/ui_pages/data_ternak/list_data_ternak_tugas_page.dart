@@ -150,7 +150,11 @@ class ListDataTernakTugasPageState extends State<ListDataTernakTugasPage> with S
                           }
 
                           // Once data is ready, pass it to the TugasList widget
-                          return DataTernakList(snapshot.data!);
+                          return DataTernakList(snapshot.data!, onRefresh: () {
+                            setState(() {
+                              _ternakListFuture = fetchTernakList();
+                            });
+                          },);
                         },
                       ),
                       FutureBuilder<List<Map<String, dynamic>>>(

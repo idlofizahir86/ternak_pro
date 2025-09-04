@@ -2,9 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
-import 'package:url_launcher/url_launcher.dart';
 import '../../cubit/konsultasi_page_cubit.dart';
 import '../../cubit/page_cubit.dart';
 import '../../shared/custom_loading.dart';
@@ -16,47 +14,9 @@ import 'data_ternak_page.dart';
 import 'home_page.dart';
 import 'profile_page.dart';
 
-class MainPage extends StatefulWidget {
-  const MainPage({super.key});
-
-  @override
-  State<MainPage> createState() => _MainPageState();
-}
-
-class _MainPageState extends State<MainPage> {
-  @override
-  void initState() {
-    super.initState();
-    // _checkLogin();
-  }
-
-  // _checkLogin() async {
-  //   final prefs = await SharedPreferences.getInstance();
-
-  //   // Cek apakah token ada di shared_preferences
-  //   final token = prefs.getString('token');
-  //   final userId = prefs.getString('user_id');
-  //   final email = prefs.getString('email');
-  //   final name = prefs.getString('name');
-  //   final roleId = prefs.getInt('role_id');
-
-  //   // Jika tidak ada token atau data login lainnya, arahkan ke halaman login eksternal
-  //   if (token == null || userId == null || email == null || name == null || roleId == null) {
-  //     // Gunakan url_launcher untuk membuka URL di browser
-  //     _launchURL('https://ternakpro.id/login');
-  //   }
-  // }
-
-  // // Fungsi untuk membuka URL
-  // _launchURL(String url) async {
-  //   final urlUri = Uri.parse(url);
-  //   if (await canLaunchUrl(urlUri)) {
-  //     await launchUrl(urlUri);
-  //   } else {
-  //     throw 'Tidak dapat membuka URL: $url';
-  //   }
-  // }
-
+class MainPageMobile extends StatelessWidget {
+  const MainPageMobile({super.key});
+    
   @override
   Widget build(BuildContext context) {
     Widget buildContent(int currentIndex) {

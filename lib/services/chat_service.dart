@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ChatService {
-  static const String baseUrl = 'https://aquamarine-ferret-962895.hostingersite.com/api/v1';
+  static const String baseUrl = 'https://ternakpro.id/api/v1';
   
   String? authToken;
 
