@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:ternak_pro/services/api_service.dart';
 import 'package:ternak_pro/shared/widgets/profile_setting_item.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../cubit/page_cubit.dart';
+import '../../services/loc_service.dart';
 import '../../shared/custom_loading.dart';
 import '../../shared/theme.dart';
 import '../../shared/widgets/custom_image_view.dart';
@@ -15,6 +19,12 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   bool _isLoading = false; // Menambahkan status loading
+
+  @override
+  void initState() {
+    super.initState();
+    loadUserData();
+  }
 
   // Fungsi logout yang memanggil metode logout dari ApiService
   void _logOut() async {
@@ -34,6 +44,16 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  String dataUser = '';
+  String email = '';
+  Future<void> loadUserData() async {
+    final credential = await ApiService().loadCredentials(); // Await the Future
+    setState(() {
+      dataUser = credential['name'] ?? ''; // Safe access with default value
+      email = credential['email'] ?? ''; // Safe access with default value
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -47,8 +67,8 @@ class _ProfilePageState extends State<ProfilePage> {
                 child: TernakProBoxLoading(), // Indikator loading
               ),
             if (!_isLoading)  
-              _buildHeaderSection(context),
-              _pribadiSettings(context),
+              _buildHeaderSection(context, dataUser),
+              _pribadiSettings(context, dataUser, email),
               _aplikasiSettings(context),
               _panduanSettings(context),
               _logOutSettings(context),
@@ -86,7 +106,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 }
 
-Widget _buildHeaderSection(BuildContext context) {
+Widget _buildHeaderSection(BuildContext context, dataUser) {
     return Container(
       height: MediaQuery.of(context).size.height * 0.25,
       width: double.infinity,
@@ -148,13 +168,13 @@ Widget _buildHeaderSection(BuildContext context) {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Peternakan',
+                          'Peternakan $dataUser',
                           style: AppTextStyle.medium.copyWith(fontSize: 20, color: AppColors.white100),
                         ),
                         Text(
-                          'Khoiru Rizki Bani Adam',
+                          'by $dataUser',
                           style: AppTextStyle.extraBold.copyWith(
-                            fontSize: MediaQuery.of(context).size.width * 0.01,  // Adjust font size dynamically
+                            fontSize: MediaQuery.of(context).size.width * 0.02,  // Adjust font size dynamically
                             color: AppColors.white100,
                             overflow: TextOverflow.ellipsis,  // Ensures the text doesn't overflow
                           ),
@@ -223,7 +243,7 @@ Widget _buildHeaderSection(BuildContext context) {
     );
   }
 
-  Widget _pribadiSettings(BuildContext context) {
+  Widget _pribadiSettings(BuildContext context, dataUser, email) {
     return Container(
       margin: EdgeInsets.only(top: 20, left: 24, right: 24),
       transform: Matrix4.translationValues(0, 0, 0),
@@ -239,22 +259,28 @@ Widget _buildHeaderSection(BuildContext context) {
             imageUrl: 'assets/profile_assets/icons/ic_user.png', 
             bgImage: Color(0XFFFFE0D5),
             menuName: 'Username', 
-            placeHolder: 'Khoiru Rizki Bani Adam', 
-            onTap: (){}
+            placeHolder: dataUser, 
+            onTap: (){
+              _showFeatureUserNotAvailableDialog(context);
+            }
           ),
           ProfileSettingItem(
             imageUrl: 'assets/profile_assets/icons/ic_mail.png', 
             bgImage: Color(0XFFFFF0C8),
             menuName: 'Email', 
-            placeHolder: 'Khoiruriski2354@gmail.com', 
-            onTap: (){}
+            placeHolder: email, 
+            onTap: (){
+              _showFeatureUserNotAvailableDialog(context);
+            }
           ),
           ProfileSettingItem(
             imageUrl: 'assets/profile_assets/icons/ic_lock.png', 
             bgImage: Color(0XFFD4F4F1),
             menuName: 'Kata Sandi', 
             placeHolder: '********', 
-            onTap: (){}
+            onTap: (){
+              _showFeatureUserNotAvailableDialog(context);
+            }
           ),
         ],
       ),
@@ -273,31 +299,184 @@ Widget _buildHeaderSection(BuildContext context) {
             style: AppTextStyle.semiBold.copyWith(fontSize: 16),
           ),
           SizedBox(height: 8),
-          ProfileSettingItem(
-            imageUrl: 'assets/profile_assets/icons/ic_loc.png', 
-            bgImage: Color(0XFFDCE8F7),
-            menuName: 'Lokasi Ternak', 
-            placeHolder: 'Sidoarjo,Jawa Timur', 
-            onTap: (){}
+          FutureBuilder<Map<String, dynamic>?>(
+            future: LocationStorageService.loadLocation(),
+            builder: (context, snapshot) {
+              final address = snapshot.hasData ? snapshot.data!['address'] : null;
+              
+              return ProfileSettingItem(
+                imageUrl: 'assets/profile_assets/icons/ic_loc.png', 
+                bgImage: Color(0XFFDCE8F7),
+                menuName: 'Lokasi Ternak', 
+                placeHolder: snapshot.connectionState == ConnectionState.waiting
+                    ? 'Memuat...'
+                    : address ?? 'Tambahkan Lokasi',
+                onTap: () {
+                  _showFeatureLocDialog(context);
+                }
+              );
+            },
           ),
           ProfileSettingItem(
             imageUrl: 'assets/profile_assets/icons/ic_bell.png', 
             bgImage: Color(0XFFFFF0C8),
             menuName: 'Pemberitahuan', 
             placeHolder: 'Izinkan', 
-            onTap: (){}
+            onTap: (){
+              _showFeatureNotAvailableDialog(context);
+            }
           ),
           ProfileSettingItem(
             imageUrl: 'assets/profile_assets/icons/ic_mode.png', 
             bgImage: Color(0XFFF8D5FF),
             menuName: 'Mode Gelap', 
             placeHolder: 'Terang', 
-            onTap: (){}
+            onTap: (){
+              _showFeatureNotAvailableDialog(context);
+            }
           ),
         ],
       ),
     );
   }
+
+// Fungsi untuk menampilkan custom modal
+void _showFeatureNotAvailableDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.0),
+        ),
+        title: const Text(
+          'Informasi',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+        content: const Text(
+          'Mohon maaf saat ini fitur belum dapat digunakan',
+          style: TextStyle(
+            fontSize: 16,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(); // Tutup dialog
+            },
+            child: const Text(
+              'OK',
+              style: TextStyle(
+                color: Colors.blue,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+void _showFeatureLocDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.0),
+        ),
+        title: const Text(
+          'Informasi',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+        content: const Text(
+          'Anda dapat mengubah lokasi saat ini pada halaman utama',
+          style: TextStyle(
+            fontSize: 16,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(); // Tutup dialog
+            },
+            child: const Text(
+              'Kembali',
+              style: TextStyle(
+                color: Colors.blue,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              context.read<PageCubit>().setPage(0); // Tutup dialog
+            },
+            child: const Text(
+              'Halaman utama',
+              style: TextStyle(
+                color: Color.fromARGB(255, 11, 58, 46),
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+void _showFeatureUserNotAvailableDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.0),
+        ),
+        title: const Text(
+          'Informasi',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+        content: const Text(
+          'Mohon maaf saat ini fitur untuk mengubah data pengguna belum dapat digunakan',
+          style: TextStyle(
+            fontSize: 16,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(); // Tutup dialog
+            },
+            child: const Text(
+              'OK',
+              style: TextStyle(
+                color: Colors.blue,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      );
+    },
+  );
+}
 
   Widget _panduanSettings(BuildContext context) {
     return Container(
@@ -316,21 +495,33 @@ Widget _buildHeaderSection(BuildContext context) {
             bgImage: Color(0XFFD5E7FF),
             menuName: 'FAQ', 
             placeHolder: '', 
-            onTap: (){}
+            onTap: (){
+              Uri url = Uri.parse('https://ternakpro.id/#faq');
+              launchUrl(url);
+              // Navigator.pushNamed(context, '/ternakpro-web');
+            }
           ),
           ProfileSettingItem(
             imageUrl: 'assets/profile_assets/icons/ic_feature.png', 
             bgImage: Color(0XFFFFEDD5),
             menuName: 'Fitur', 
             placeHolder: '', 
-            onTap: (){}
+            onTap: (){
+              Uri url = Uri.parse('https://ternakpro.id/#fitur');
+              launchUrl(url);
+              // Navigator.pushNamed(context, '/ternakpro-web');
+            }
           ),
           ProfileSettingItem(
             imageUrl: 'assets/profile_assets/icons/ic_phone.png', 
             bgImage: Color(0XFFD5F8F7),
             menuName: 'Hubungi Kami', 
             placeHolder: '', 
-            onTap: (){}
+            onTap: (){
+              Uri url = Uri.parse('https://ternakpro.id');
+              launchUrl(url);
+              // Navigator.pushNamed(context, '/ternakpro-web');
+            }
           ),
         ],
       ),

@@ -1,22 +1,29 @@
 import 'package:flutter/material.dart';
 
+import '../../../services/api_service.dart';
 import '../../theme.dart';
 import '../custom_image_view.dart';
 import 'show_tugas_edit_modal.dart';
 
 class CustomTugasItem extends StatelessWidget {
   final String title;
+  final int idTugas;
+  final int statusId;
   final String status;
   final String catatan;
   final String time;
   final String iconPath;
+  final String tglTugas; // Added
 
   const CustomTugasItem({super.key, 
     required this.title,
     required this.status,
+    required this.statusId,
     required this.time,
     required this.iconPath,
-    required this.catatan,
+    required this.catatan, 
+    required this.idTugas,
+    required this.tglTugas, // Added
   });
 
   @override
@@ -25,16 +32,60 @@ class CustomTugasItem extends StatelessWidget {
       onTap: () {
         showTugasEditModal(
           context,
+          idTugas: idTugas,
           title: title,
           status: status,
+          statusId: statusId,
           time: time,
           iconPath: iconPath,
           catatan: catatan,
-          onSave: ({required String status, required String time, required String catatan}) {
-            // TODO: simpan ke state/BLoC/API sesuai kebutuhanmu
-            // contoh:
-            // context.read<TugasCubit>().updateTugas(title, status, time, catatan);
-            debugPrint('SAVE -> status:$status  time:$time  catatan:$catatan  title:$title');
+          tglTugas: tglTugas, // Added
+          onSave: ({
+            required String status,
+            required int statusId,
+            required String time,
+            required String catatan,
+            required String tglTugas, // Added
+          }) async {
+            try {
+              // Load credentials (e.g., user_id) for the API call
+              final credentials = await ApiService().loadCredentials();
+              final userId = credentials['user_id'];
+
+              final formattedWaktuTugas = "$time:00";
+
+              // Call API to update the task
+              await ApiService().updateDataTugas(
+                context: context,
+                idTugas: idTugas,
+                userId: userId,
+                statusTugasId: statusId,
+                waktuTugas: formattedWaktuTugas,
+                catatan: catatan,
+                tglTugas: tglTugas, // Added
+              );
+
+              // Debugging output
+              debugPrint(
+                'SAVE -> idTugas:$idTugas title:$title status:$status time:$time catatan:$catatan tglTugas:$tglTugas',
+              );
+
+              // Show success message
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Tugas berhasil diperbarui'),
+                  backgroundColor: AppColors.green01,
+                ),
+              );
+            } catch (e) {
+              // Show error message
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Gagal memperbarui tugas: ${e.toString()}'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
           },
         );
       },

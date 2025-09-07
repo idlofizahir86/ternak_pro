@@ -35,17 +35,35 @@ class ProfileSettingItem extends StatelessWidget {
                   child: Image.asset(imageUrl),
                 ),
                 SizedBox(width: 8),
-                Text(menuName,
-                  style: AppTextStyle.semiBold.copyWith(
-                    fontSize: 14,
-                    color: AppColors.blackText,
+                // Menu Name dengan constraint
+                Expanded(
+                  flex: 2, // 60% space untuk menu name
+                  child: Text(
+                    menuName,
+                    style: AppTextStyle.semiBold.copyWith(
+                      fontSize: 14,
+                      color: AppColors.blackText,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    softWrap: false,
                   ),
                 ),
+                
                 Spacer(),
-                Text(placeHolder,
-                  style: AppTextStyle.medium.copyWith(
-                    fontSize: 14,
-                    color: AppColors.grey2,
+                
+                // Place Holder dengan constraint
+                Expanded(
+                  flex: 2, // 40% space untuk placeholder
+                  child: Text(
+                    placeHolder,
+                    style: AppTextStyle.medium.copyWith(
+                      fontSize: 14,
+                      color: AppColors.grey2,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.right,
                   ),
                 ),
                 SizedBox(width: 8),

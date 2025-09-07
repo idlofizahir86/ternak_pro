@@ -452,19 +452,98 @@ class _CustomDropdownInputKeuanganState extends State<CustomDropdownInputKeuanga
   }
 
   void _showRecurrenceModal(BuildContext context) {
-    showModalBottomSheet(
+    final TextEditingController _namaController = TextEditingController();
+
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return CustomRecurrenceModal(
-          onSave: (recurrenceData) {
-            // Handle the saved recurrence data if needed
-            Navigator.pop(context);
-          },
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: AppColors.primaryWhite,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          title: Text(
+            'Tambah Aset Baru',
+            style: AppTextStyle.semiBold.copyWith(fontSize: 18, color: AppColors.black100),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _namaController,
+                decoration: InputDecoration(
+                  labelText: 'Nama Aset',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: AppColors.green01),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Tutup modal
+              },
+              child: Text(
+                'Batal',
+                style: AppTextStyle.medium.copyWith(color: AppColors.black100),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final nama = _namaController.text.trim();
+                if (nama.isNotEmpty) {
+                  try {
+                    // Panggil API Service untuk menyimpan tujuan ternak
+                    final credentials = await ApiService().loadCredentials();
+                    final userId = credentials['user_id'];
+                    final newTujuanId = await ApiService.storeAsset(userId, nama);
+
+                    // Perbarui selectedValue dengan ID baru
+                    setState(() {
+                      widget.onChanged(newTujuanId.toString());
+                    });
+
+                    // Tutup modal custom
+                    Navigator.of(context).pop();
+
+                    // Tutup dialog opsi
+                    Navigator.pushReplacementNamed(context, '/tambah-data-keuangan');
+                  } catch (e) {
+                    // Tampilkan pesan error jika gagal
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Gagal menambahkan asset: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Nama aset wajib diisi'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.green01,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text(
+                'Simpan',
+                style: AppTextStyle.medium.copyWith(color: AppColors.primaryWhite),
+              ),
+            ),
+          ],
         );
       },
     );

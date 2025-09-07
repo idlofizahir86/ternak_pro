@@ -39,6 +39,22 @@ class TipsItem {
       updatedAt: DateTime.parse(json['updated_at']),
     );
   }
+
+  // Convert to JSON for caching
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'imageUrl': imageUrl,
+      'judul': judul,
+      'author': author,
+      'konten': konten,
+      'kategori': kategori,
+      'kategoriDetail': kategoriDetail,
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
+    };
+  }
+
 }
 
 // Contoh data

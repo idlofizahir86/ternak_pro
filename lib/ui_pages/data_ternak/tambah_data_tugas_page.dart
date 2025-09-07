@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../services/api_service.dart';
 import '../../shared/custom_loading.dart';
 import '../../shared/theme.dart';
@@ -32,6 +33,8 @@ class CustomInputTugasField extends StatefulWidget {
 }
 
 class CustomInputTugasFieldState extends State<CustomInputTugasField> {
+  
+
   @override
   void initState() {
     super.initState();
@@ -43,6 +46,7 @@ class CustomInputTugasFieldState extends State<CustomInputTugasField> {
       widget.controller.text = formattedTime;
     }
   }
+
   
   @override
   Widget build(BuildContext context) {
@@ -261,6 +265,243 @@ class _CustomDropdownInputTernakState extends State<CustomDropdownInputTernak> {
     );
   }
 
+  void _showCustomModal(BuildContext context) {
+    final TextEditingController _namaController = TextEditingController();
+    String? selectedIcon; // Menyimpan ikon yang dipilih
+
+    // Daftar ikon yang tersedia dalam format assets
+    final List<String> iconNames = [
+      'ic_snack',
+      'ic_shield',
+      // Tambahkan ikon lainnya di sini
+    ];
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        // Get screen size for responsive calculations
+        final screenWidth = MediaQuery.of(context).size.width;
+        final screenHeight = MediaQuery.of(context).size.height;
+        // Calculate dynamic crossAxisCount based on screen width
+        final crossAxisCount = (screenWidth / 100).floor().clamp(3, 5);
+        // Calculate dynamic icon size to prevent overflow
+        final iconSize = (screenWidth / crossAxisCount) * 0.5;
+
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          backgroundColor: AppColors.primaryWhite,
+          child: Container(
+            padding: EdgeInsets.all(16),
+            // Make dialog height responsive, max 80% of screen height
+            constraints: BoxConstraints(
+              maxHeight: screenHeight * 0.8,
+              minHeight: 300,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Judul dialog
+                  Text(
+                    'Tambah Jenis Tugas',
+                    style: AppTextStyle.semiBold.copyWith(
+                      fontSize: 18,
+                      color: AppColors.black100,
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  // Input nama jenis tugas
+                  TextField(
+                    controller: _namaController,
+                    decoration: InputDecoration(
+                      labelText: 'Nama Jenis Tugas',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: AppColors.green01),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  // Grid untuk memilih ikon
+                  Container(
+                    // Ensure grid doesn't exceed dialog height
+                    constraints: BoxConstraints(
+                      maxWidth: 40,
+                    ),
+                    child: StatefulBuilder(
+                      builder: (context, setState) {
+                        return GridView.builder(
+                          shrinkWrap: true,
+                          physics: BouncingScrollPhysics(),
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: crossAxisCount,
+                            crossAxisSpacing: 10,
+                            mainAxisSpacing: 10,
+                            childAspectRatio: 1,
+                          ),
+                          itemCount: iconNames.length,
+                          itemBuilder: (context, index) {
+                            String iconName = iconNames[index];
+                            String iconPath = 'assets/home_assets/icons/$iconName.png';
+                            bool isSelected = selectedIcon == iconPath;
+
+                            return GestureDetector(
+                              onTap: () {
+                                HapticFeedback.lightImpact(); // Haptic feedback
+                                setState(() {
+                                  selectedIcon = iconPath;
+                                });
+                              },
+                              child: AnimatedContainer(
+                                duration: Duration(milliseconds: 200),
+                                transform: Matrix4.identity()
+                                  ..scale(isSelected ? 1.1 : 1.0),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? AppColors.green01.withOpacity(0.2)
+                                      : Colors.transparent,
+                                  border: Border.all(
+                                    color: isSelected ? AppColors.green01 : Colors.transparent,
+                                    width: 2,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Image.asset(
+                                          iconPath,
+                                          width: iconSize.clamp(30, 50),
+                                          height: iconSize.clamp(30, 50),
+                                          fit: BoxFit.cover,
+                                        ),
+                                        SizedBox(height: 4),
+                                        Text(
+                                          iconName
+                                              .replaceAll('ic_', '')
+                                              .replaceAll('_', ' ')
+                                              .toUpperCase(),
+                                          style: TextStyle(
+                                            fontSize: (iconSize * 0.25).clamp(10, 12),
+                                          ),
+                                          textAlign: TextAlign.center,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                    if (isSelected)
+                                      Positioned(
+                                        top: 0,
+                                        right: 0,
+                                        child: Icon(
+                                          Icons.check_circle,
+                                          color: AppColors.green01,
+                                          size: iconSize * 0.4,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  // Tombol Simpan dan Batal
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                        child: Text(
+                          'Batal',
+                          style: AppTextStyle.medium.copyWith(color: AppColors.black100),
+                        ),
+                      ),
+                      ElevatedButton(
+                        onPressed: () async {
+                          // Prevent double-tap with a simple debounce
+                          await Future.delayed(Duration(milliseconds: 300));
+                          final nama = _namaController.text.trim();
+                          if (nama.isNotEmpty && selectedIcon != null) {
+                            try {
+                              final credentials = await ApiService().loadCredentials();
+                              final userId = credentials['user_id'];
+                              final newTujuanId = await ApiService.storeJenisTugas(
+                                userId,
+                                nama,
+                                selectedIcon!,
+                              );
+
+                              setState(() {
+                                widget.onChanged(newTujuanId.toString());
+                              });
+
+                              Navigator.of(context).pop();
+                              
+                              // Tutup dialog opsi
+                              Navigator.pushReplacementNamed(context, '/tambah-data-tugas');
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Gagal menambahkan jenis tugas: ${e.toString()}',
+                                  ),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Harap isi nama jenis tugas dan pilih ikon',
+                                ),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.green01,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: Text(
+                          'Simpan',
+                          style: AppTextStyle.medium.copyWith(
+                            color: AppColors.primaryWhite,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+
+
+
   void _showOptionsDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -295,7 +536,7 @@ class _CustomDropdownInputTernakState extends State<CustomDropdownInputTernak> {
                       }
 
                       if (value == '0') {
-                        _showRecurrenceModal(context);
+                        _showCustomModal(context);
                       }
                     }
                   },
@@ -322,8 +563,25 @@ class _CustomDropdownInputTernakState extends State<CustomDropdownInputTernak> {
       ),
       builder: (context) {
         return CustomRecurrenceModal(
-          onSave: (recurrenceData) {
-            // Handle the saved recurrence data if needed
+          onSave: (recurrenceData) {// Ambil data recurrence
+            final days = (recurrenceData['days']?.isEmpty ?? true) 
+            ? 'sabtu'  // Jika days kosong atau null, set default ke 'sabtu'
+            : recurrenceData['days']?.join(';');  // Jika ada data, gabungkan dengan separator ';'
+            
+            // Jika recurrenceType adalah "Tidak Pernah", set repetition menjadi 0
+            if (recurrenceData['type'] == 'Tidak Pernah') {
+              recurrenceData['repetition'] = 0;
+            }
+
+            // Simpan data pengulangan ke SharedPreferences
+            ApiService().savePengulanganTemps(
+              recurrenceData['count'],
+              recurrenceData['frequency'],
+              days,
+              recurrenceData['repetition'],
+              recurrenceData['count'] * recurrenceData['repetition'],
+              recurrenceData['date'] ?? '-',
+            );
             Navigator.pop(context);
           },
         );
@@ -345,13 +603,13 @@ class _CustomRecurrenceModalState extends State<CustomRecurrenceModal> {
   int _frequencyCount = 1;
   // Key unik untuk tiap hari
   final List<Map<String, String>> _days = const [
-    {'key': 'mon', 'label': 'M'},
-    {'key': 'tue', 'label': 'S'},
-    {'key': 'wed', 'label': 'S'},
-    {'key': 'thu', 'label': 'R'},
-    {'key': 'fri', 'label': 'K'},
-    {'key': 'sat', 'label': 'J'},
-    {'key': 'sun', 'label': 'S'},
+    {'key': 'senin', 'label': 'S'},
+    {'key': 'selasa', 'label': 'S'},
+    {'key': 'rabu', 'label': 'R'},
+    {'key': 'kamis', 'label': 'K'},
+    {'key': 'jumat', 'label': 'J'},
+    {'key': 'sabtu', 'label': 'S'},
+    {'key': 'minggu', 'label': 'M'},
   ];
 
   final Set<String> _selectedDays = {};
@@ -394,13 +652,27 @@ class _CustomRecurrenceModalState extends State<CustomRecurrenceModal> {
     }
   }
 
+  String formatDate(String date) {
+    try {
+      // Parse tanggal dari format "dd MMMM yyyy" (misalnya "05 September 2025")
+      DateTime parsedDate = DateFormat('dd MMMM yyyy').parse(date);
+      
+      // Format ke "yyyy-MM-dd" (misalnya "2025-09-05")
+      return DateFormat('yyyy-MM-dd').format(parsedDate);
+    } catch (e) {
+      // Jika terjadi error dalam parsing, kembalikan "-" sebagai fallback
+      return '-';
+    }
+  }
+
   void _save() {
+    final formattedDate = formatDate(_dateController.text.toString());
     widget.onSave({
       'frequency': _selectedFrequency,
       'count': _frequencyCount,
       'days': _selectedDays,
       'type': _recurrenceType,
-      'date': _dateController.text,
+      'date': formattedDate,
       'repetition': int.tryParse(_repetitionController.text) ?? 1,
     });
   }
@@ -589,7 +861,6 @@ class _CustomRecurrenceModalState extends State<CustomRecurrenceModal> {
                           Flexible(
                             child: TextFormField(
                               controller: _dateController,
-                              readOnly: true,
                               onTap: _pickDate,
                               style: TextStyle(fontSize: 14 * s),
                               decoration: pillInput(
@@ -749,6 +1020,102 @@ class TambahDataTugasPageState extends State<TambahDataTugasPage> {
     userId = credential['user_id'];
   }
 
+  Future<void> _saveData() async {
+  // Validasi minimal sebelum kirim
+  if (_selectedTugas.isEmpty || _selectedStatus.isEmpty || _selectedPengulangan.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Pilih jenis tugas, status, dan pengulangan terlebih dahulu')),
+    );
+    return;
+  }
+
+  if (_tanggalPerawatanController.text.trim().isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Tanggal tugas belum diisi')),
+    );
+    return;
+  }
+
+  if (_waktuPerawatanController.text.trim().isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Waktu tugas belum diisi')),
+    );
+    return;
+  }
+
+  // Mengonversi nilai yang dipilih menjadi int
+  final jenisTugasId = int.tryParse(_selectedTugas) ?? 1;  // Default ke 0 jika invalid
+  final statusTugasId = int.tryParse(_selectedStatus) ?? 1;  // Default ke 0 jika invalid
+  final pengulanganId = int.tryParse(_selectedPengulangan) ?? 1;  // Default ke 0 jika invalid
+
+  // Pastikan nilai yang dipilih valid (bukan null atau empty)
+  if (jenisTugasId == 0 || statusTugasId == 0 || pengulanganId == 0) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Pastikan semua pilihan sudah diisi dengan benar')),
+    );
+    return;
+  }
+
+  // Mengonversi tglTugas dari dd/MM/yyyy menjadi yyyy-MM-dd
+  final tglTugasInput = _tanggalPerawatanController.text.trim();
+  DateTime? parsedTglTugas;
+  try {
+    parsedTglTugas = DateFormat('dd/MM/yyyy').parseStrict(tglTugasInput);  // Parse ke DateTime
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Format tanggal salah! Harus dd/MM/yyyy')),
+    );
+    return;
+  }
+
+
+  // Menyiapkan data untuk dikirim
+  final waktuTugas = _waktuPerawatanController.text;
+  final formattedWaktuTugas = (waktuTugas.length == 5) ? "$waktuTugas:00" : waktuTugas;
+  final catatan = _catatanController.text;
+  final isPengingat = true; // Atur sesuai input
+
+  setState(() => _isLoading = true);
+  try {
+    // Memanggil API untuk menyimpan tugas
+    final ok = await _apiService.storeTugas(
+      context: context,
+      userId: userId,
+      jenisTugasId: jenisTugasId,
+      tglTugas: parsedTglTugas.toString(),
+      waktuTugas: formattedWaktuTugas,
+      statusTugasId: statusTugasId,
+      catatan: catatan,
+      pengulanganId: pengulanganId,
+      isPengingat: isPengingat,
+    );
+
+    setState(() => _isLoading = false);
+
+    if (ok) {
+      // Sukses → pindah halaman
+      if (!mounted) return;
+      Navigator.pushNamed(
+        context,
+        '/list-data-ternak-tugas',
+        arguments: {'initialIndex': 1},
+      );
+    } else {
+      // Harusnya tidak terjadi karena ok hanya true saat 201
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Gagal menyimpan data tugas')),
+      );
+    }
+  } catch (e) {
+    setState(() => _isLoading = false);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Gagal menyimpan data: $e')),
+    );
+  }
+}
+
   Future<void> _loadAllData() async {
     try {
       // Jalankan semua Future secara paralel dan tunggu hingga selesai
@@ -888,7 +1255,7 @@ class TambahDataTugasPageState extends State<TambahDataTugasPage> {
               previous: false,
               text: "Simpan",
               width: double.infinity,
-              onClick: () => Navigator.pushNamed(context, '/list-data-ternak-tugas'),
+              onClick: _saveData,
             ),
           ],
         ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../models/DailyTaskItem.dart';
+import '../../../services/api_service.dart';
 import '../../custom_loading.dart';
 import '../../theme.dart';
 import '../custom_image_view.dart';
@@ -203,16 +204,60 @@ Widget buildTaskItem(BuildContext context, DailyTaskItem task) {
                           onTap: () {
                             showTugasEditModal(
                             context,
+                            idTugas: task.idTugas,
                             title: task.title,
                             status: task.status,
+                            statusId: task.statusId,
                             time: task.time,
-                            catatan: task.catatan,
                             iconPath: task.iconPath,
-                            onSave: ({required String status, required String time, required String catatan}) {
-                              // TODO: simpan ke state/BLoC/API sesuai kebutuhanmu
-                              // contoh:
-                              // context.read<TugasCubit>().updateTugas(title, status, time, catatan);
-                              // debugPrint('SAVE -> status:$status  time:$time  catatan:$catatan  title:$task.title');
+                            catatan: task.catatan,
+                            tglTugas: task.tglTugas, // Added
+                            onSave: ({
+                              required String status,
+                              required int statusId,
+                              required String time,
+                              required String catatan,
+                              required String tglTugas, // Added
+                            }) async {
+                              try {
+                                // Load credentials (e.g., user_id) for the API call
+                                final credentials = await ApiService().loadCredentials();
+                                final userId = credentials['user_id'];
+                                final formattedWaktuTugas = "$time:00";
+
+                                // Call API to update the task
+                                await ApiService().updateDataTugas(
+                                  context: context,
+                                  idTugas: task.idTugas,
+                                  userId: userId,
+                                  statusTugasId: statusId,
+                                  waktuTugas: formattedWaktuTugas,
+                                  catatan: catatan,
+                                  tglTugas: tglTugas, // Added
+                                );
+
+                                // Debugging output
+                                debugPrint(
+                                  'SAVE -> idTugas:${task.idTugas} title:${task.title} status:$status time:$time catatan:$catatan tglTugas:$tglTugas',
+                                );
+
+                                // Show success message
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Tugas berhasil diperbarui'),
+                                    backgroundColor: AppColors.green01,
+                                  ),
+                                );
+                                
+                              } catch (e) {
+                                // Show error message
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Gagal memperbarui tugas: ${e.toString()}'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
                             },
                           );
                           },

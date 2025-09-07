@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:ternak_pro/shared/custom_loading.dart';
+import '../../../cubit/month_cubit.dart';
+import '../../../cubit/year_cubit.dart';
 import '../../../models/KeuanganItem.dart';
 import '../../../services/api_service.dart';
 import '../../theme.dart'; // Sesuaikan path ke model KeuanganItem
@@ -110,15 +113,24 @@ class _KeuanganRiwayatSectionState extends State<KeuanganRiwayatSection> {
               onPressed: () => Navigator.pop(ctx),
               child: const Text('Batal'),
             ),
-            FilledButton(
-              onPressed: () {
-                setState(() {
-                  _selectedMonth = tempMonth;
-                  _selectedYear = tempYear;
-                });
-                Navigator.pop(ctx);
-              },
-              child: const Text('Pilih'),
+            // Membungkus hanya FilledButton dengan MultiBlocProvider
+            MultiBlocProvider(
+              providers: [
+                BlocProvider(create: (_) => MonthCubit()),  // Membuat instance MonthCubit hanya untuk FilledButton
+                BlocProvider(create: (_) => YearCubit()),  // Membuat instance YearCubit hanya untuk FilledButton
+              ],
+              child: FilledButton(
+                onPressed: () {
+                  setState(() {
+                    _selectedMonth = tempMonth;
+                    _selectedYear = tempYear;
+                     context.read<MonthCubit>().changeMonth(tempMonth);
+                     context.read<YearCubit>().changeYear(tempYear);
+                  });
+                  Navigator.pop(ctx);
+                },
+                child: const Text('Pilih'),
+              ),
             ),
           ],
         );

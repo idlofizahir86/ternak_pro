@@ -222,10 +222,13 @@ class TugasList extends StatelessWidget {
       itemBuilder: (context, index) {
         final task = tugasList[index];
         return CustomTugasItem(
-          title: task['nama_tugas'] ?? 'No Title',
-          status: task['status_tugas'] ?? 'No Status',
-          time: task['waktu_tugas'] ?? 'No Time',
-          catatan: task['catatan'] ?? 'No Catatan',
+          idTugas: task['id_tugas'] ?? 0,
+          title: task['nama_tugas'] ?? '',
+          statusId: task['status_tugas_id'] ?? 0,
+          status: task['status_tugas'] ?? '',
+          time: task['waktu_tugas'] ?? '',
+          tglTugas: task['tgl_tugas'] ?? '',
+          catatan: task['catatan'] ?? '',
           iconPath: task['icon_path'] ?? 'assets/home_assets/icons/ic_default.png',
         );
       },

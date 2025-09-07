@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:ternak_pro/cubit/konsultasi_page_cubit.dart';
+import 'package:ternak_pro/cubit/month_cubit.dart';
 import 'package:ternak_pro/cubit/tab_keuangan_cubit.dart';
+import 'package:ternak_pro/cubit/year_cubit.dart';
 import 'package:ternak_pro/ui_pages/asisten_virtual/asisten_virtual_page.dart';
 import 'package:ternak_pro/ui_pages/keuangan/keuangan_page.dart';
 import 'package:ternak_pro/ui_pages/keuangan/tambah_data_keuangan_page.dart';
@@ -126,6 +128,8 @@ class MyApp extends StatelessWidget {
         BlocProvider(create: (context) => TabTernakCubit()),
         BlocProvider(create: (context) => TabKeuanganCubit()),
         BlocProvider(create: (context) => KonsultasiPageCubit()),
+        BlocProvider(create: (context) => MonthCubit()),
+        BlocProvider(create: (context) => YearCubit()),
       ],
       child: MaterialApp(
         localizationsDelegates: const [
@@ -192,6 +196,7 @@ class MyApp extends StatelessWidget {
 
           '/rekomendasi-ternak-potensial': (context) => RekomendasiTernakPage(),
           '/hasil-rekomendasi-peternak': (context) => HasilRekomendasiTernakPage(),
+          
         },
       ),
     );

@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ternak_pro/models/TernakItem.dart';
 import 'package:ternak_pro/models/TipsItem.dart';
+import 'package:intl/intl.dart';
 
 import '../models/DailyTaskItem.dart';
 import '../models/KeuanganItem.dart';
@@ -25,6 +26,91 @@ class ApiService {
       await prefs.setString('name', name);
       await prefs.setInt('role_id', roleId);
     }
+
+    Future<void> savePengulanganTemps(int nPengulangan, String satuanPengulangan, String hariPengulangan, int nKerekapan, int totalKerekapan, String tglAkhir) async {
+      final prefs = await SharedPreferences.getInstance();
+
+      // Simpan data di SharedPreferences dengan tipe yang sesuai
+      await prefs.setInt('n_pengulangan', nPengulangan);  // Simpan sebagai int
+      await prefs.setString('satuan_pengulangan', satuanPengulangan);  // Simpan sebagai string
+      await prefs.setString('hari_pengulangan', hariPengulangan);  // Simpan sebagai string
+      await prefs.setInt('n_kerekapan', nKerekapan);  // Simpan sebagai int
+      await prefs.setInt('total_kerekapan', totalKerekapan);  // Simpan sebagai int
+      await prefs.setString('tgl_akhir', tglAkhir);  // Simpan sebagai string
+
+      
+      print((nPengulangan, satuanPengulangan, hariPengulangan, nKerekapan, totalKerekapan, tglAkhir));
+    }
+
+    Future<Map<String, dynamic>> _loadPengulanganTemps() async {
+      final prefs = await SharedPreferences.getInstance();
+
+      // Memuat data dari SharedPreferences
+      int nPengulangan = prefs.getInt('n_pengulangan') ?? 0;  // Default ke 0 jika data tidak ditemukan
+      String satuanPengulangan = prefs.getString('satuan_pengulangan') ?? '';  // Default ke string kosong
+      String hariPengulangan = prefs.getString('hari_pengulangan') ?? '';  // Default ke string kosong
+      int nKerekapan = prefs.getInt('n_kerekapan') ?? 0;  // Default ke 0 jika data tidak ditemukan
+      int totalKerekapan = prefs.getInt('total_kerekapan') ?? 0;  // Default ke 0 jika data tidak ditemukan
+      String tglAkhir = prefs.getString('tgl_akhir') ?? '';  // Default ke string kosong jika data tidak ditemukan
+
+      // Periksa tgl_akhir, jika "-" atau bukan tanggal valid, set ke "-"
+      if (tglAkhir == '-') {
+        tglAkhir = '-';
+      } else {
+        // Gunakan tryParse untuk memeriksa apakah tgl_akhir valid
+        try {
+          DateTime parsedDate = DateFormat("yyyy-MM-dd").parseStrict(tglAkhir);
+          tglAkhir = DateFormat("yyyy-MM-dd").format(parsedDate);
+        } catch (e) {
+          tglAkhir = '-';  // Jika tgl_akhir tidak valid, set ke "-"
+        }
+      }
+
+      
+      print((nPengulangan, satuanPengulangan, hariPengulangan, nKerekapan, totalKerekapan, tglAkhir));
+
+      // Mengembalikan data sebagai Map
+      return {
+        'n_pengulangan': nPengulangan,
+        'satuan_pengulangan': satuanPengulangan,
+        'hari_pengulangan': hariPengulangan,
+        'n_kerekapan': nKerekapan,
+        'total_kerekapan': totalKerekapan,
+        'tgl_akhir': tglAkhir,
+      };
+    }
+
+
+    Future<bool> _clearPengulanganTemps() async {
+      final prefs = await SharedPreferences.getInstance();
+
+      // Menghapus data dari SharedPreferences
+      await prefs.remove('n_pengulangan');
+      await prefs.remove('satuan_pengulangan');
+      await prefs.remove('hari_pengulangan');
+      await prefs.remove('n_kerekapan');
+      await prefs.remove('total_kerekapan');
+      await prefs.remove('tgl_akhir');
+
+      // Mengecek apakah data telah dihapus
+      bool isDataCleared = prefs.getInt('n_pengulangan') == null &&
+                          prefs.getString('satuan_pengulangan') == null &&
+                          prefs.getString('hari_pengulangan') == null &&
+                          prefs.getInt('n_kerekapan') == null &&
+                          prefs.getInt('total_kerekapan') == null &&
+                          prefs.getString('tgl_akhir') == null;
+
+      if (isDataCleared) {
+        print('Semua data pengulangan telah dihapus');
+      } else {
+        print('Gagal menghapus data');
+      }
+
+      return isDataCleared;  // Mengembalikan status penghapusan
+    }
+
+
+
 
     Future<Map<String, dynamic>> loadCredentials() async {
       final prefs = await SharedPreferences.getInstance();
@@ -58,14 +144,14 @@ class ApiService {
 
   Future<Map<String, dynamic>> getRememberMe() async {
     final prefs = await SharedPreferences.getInstance();
-    final $remember_me = prefs.getBool('remember_me') ?? false;
-    final $remember_email = prefs.getString('remember_email');
-    final $remember_password = prefs.getString('remember_password');
+    final $rememberMe = prefs.getBool('remember_me') ?? false;
+    final $rememberEmail = prefs.getString('remember_email');
+    final $rememberPassword = prefs.getString('remember_password');
 
     return {
-      'remember_me': $remember_me,
-      'remember_email': $remember_email,
-      'remember_password': $remember_password
+      'remember_me': $rememberMe,
+      'remember_email': $rememberEmail,
+      'remember_password': $rememberPassword
     };
   }
 
@@ -358,11 +444,11 @@ class ApiService {
   //***************************************************Keuangan Endpoints*******************************************************
   //***************************************************Keuangan Endpoints*******************************************************
   //***************************************************Keuangan Endpoints*******************************************************
-  Future<int> getTotalKeuangan(String tipe, String userId) async {
+  Future<int> getTotalKeuangan(String tipe, int selectedMonth, int selectedYear,  userId) async {
     try {
       final response = await _makeRequest(
         method: 'GET',
-        endpoint: '/keuangan/$tipe/total/$userId',
+        endpoint: '/keuangan/$tipe/$selectedMonth/$selectedYear/total/$userId',
       );
 
       // print('Full API Response: ${response.body}');  // Untuk memeriksa seluruh response
@@ -500,9 +586,29 @@ class ApiService {
       }
   }
 
-  Future<dynamic> storeAsset(String userId, Map<String, dynamic> data) async {
-    final response = await _makeRequest(method: 'POST', endpoint: '/asset/$userId', body: data);
-    return _handleResponse(response);
+  static Future<int> storeAsset(String userId, String nama) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/asset/$userId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          'user_id': userId,
+          'nama': nama,
+        }),
+      );
+
+      if (response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        return data['id']; // Asumsi API mengembalikan ID tujuan ternak yang baru
+      } else {
+        throw Exception('Gagal menyimpan tujuan ternak: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error menyimpan tujuan ternak: $e');
+    }
   }
 
   Future<dynamic> updateAsset(String userId, Map<String, dynamic> data) async {
@@ -837,6 +943,151 @@ class ApiService {
   }
 }
 
+Future<bool> storeTugas({
+    required BuildContext context, // Menambahkan BuildContext
+    required String userId,
+    required int jenisTugasId,
+    required String tglTugas,
+    required String waktuTugas,
+    required int statusTugasId,
+    required String? catatan,
+    required int pengulanganId,
+    required bool? isPengingat,
+  }) async {
+    try {
+      // Membuat payload dasar
+      final Map<String, dynamic> payload = {
+        'user_id': userId,
+        'jenis_tugas_id': jenisTugasId,
+        'tgl_tugas': tglTugas,
+        'waktu_tugas': waktuTugas,
+        'status_tugas_id': statusTugasId,
+        'catatan': catatan,
+        'pengulangan_id': pengulanganId,
+        'is_pengingat': isPengingat,
+      };
+
+
+      // Jika pengulangan_id adalah 6, tambahkan data tambahan
+      if (pengulanganId == 6) {
+        final pengulanganData = await _loadPengulanganTemps();
+
+        print(pengulanganData);
+        // Tambahkan data pengulangan ke payload
+        payload.addAll(pengulanganData);
+
+      }
+
+      
+      print(payload);
+
+      // Kirim request POST ke endpoint '/tugas'
+      final response = await _makeRequest(
+        method: 'POST',
+        endpoint: '/tugas',
+        body: payload,
+      );
+
+      if (response.statusCode == 302) {
+        final redirectUrl = response.headers['location'];
+        if (redirectUrl != null) {
+          print('Redirect to: $redirectUrl');
+          Navigator.pushNamed(
+            context,
+            '/list-data-ternak-tugas',
+            arguments: {'initialIndex': 1},
+          ); // Navigasi ke halaman sebelumnya
+          throw Exception('Redirect to: $redirectUrl');
+        }
+      }
+
+      if (response.statusCode == 201) {
+        // Panggil _clearPengulanganTemps setelah berhasil
+        await _clearPengulanganTemps();
+        return true; // Berhasil membuat tugas
+      }
+
+      // Tangani error umum & validasi
+      if (response.statusCode == 422) {
+        final body = jsonDecode(response.body);
+        throw Exception('Validasi gagal: ${body['errors'] ?? body}');
+      }
+
+      throw Exception('Gagal menyimpan data tugas: ${response.statusCode} - ${response.body}');
+    } catch (e) {
+      throw Exception('Error saat menyimpan data tugas: $e');
+    }
+  }
+
+  Future<void> updateDataTugas({
+    required BuildContext context,
+    required String userId,
+    required int idTugas,
+    required String waktuTugas,
+    required String tglTugas,
+    required int statusTugasId,
+    String? catatan,
+  }) async {
+    try {
+      final credentials = await loadCredentials();
+      final userId = credentials['user_id'];
+      final response = await http.put(
+        Uri.parse('$_baseUrl/tugas/$userId/$idTugas'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          'tgl_tugas': tglTugas,
+          'waktu_tugas': waktuTugas,
+          'status_tugas_id': statusTugasId,
+          'catatan': catatan,
+        }),
+      );
+
+      
+
+      if (response.statusCode == 200) {
+        Navigator.pushNamed(
+            context,
+            '/list-data-ternak-tugas',
+            arguments: {'initialIndex': 1},
+          );
+        return; // Sukses, tidak perlu mengembalikan data kecuali diperlukan
+      } else {
+        throw Exception('Gagal memperbarui data tugas: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error memperbarui data tugas: $e');
+    }
+    
+  }
+
+  static Future<int> storeJenisTugas(String userId, String nama, String iconPath) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/jenis/tugas/$userId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          'user_id': userId,
+          'nama': nama,
+          'icon_path': iconPath,
+        }),
+      );
+
+      if (response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        return data['id']; // Asumsi API mengembalikan ID tujuan ternak yang baru
+      } else {
+        throw Exception('Gagal menyimpan tujuan ternak: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error menyimpan tujuan ternak: $e');
+    }
+  }
 
   // New method to fetch a single Hewan by ID
   Future<List<Map<String, dynamic>>> getJenisTugasListByUserId(String userId) async {

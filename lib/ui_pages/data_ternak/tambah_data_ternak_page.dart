@@ -270,7 +270,7 @@ class _CustomDropdownInputTernakState extends State<CustomDropdownInputTernak> {
                     Navigator.of(context).pop();
 
                     // Tutup dialog opsi
-                    Navigator.of(context).pop();
+                    Navigator.pushReplacementNamed(context, '/tambah-data-ternak');
                   } catch (e) {
                     // Tampilkan pesan error jika gagal
                     ScaffoldMessenger.of(context).showSnackBar(

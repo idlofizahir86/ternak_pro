@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:ternak_pro/cubit/year_cubit.dart';
 import 'package:ternak_pro/shared/custom_loading.dart';
 import 'package:ternak_pro/shared/widgets/keuangan/keuangan_riwayat_section.dart';
+import 'package:ternak_pro/shared/widgets/onboarding_buttom.dart';
 
+import '../../cubit/month_cubit.dart';
 import '../../services/api_service.dart';
 import '../../shared/theme.dart';
 import '../../shared/widgets/custom_image_view.dart';
@@ -22,13 +26,13 @@ class _KeuanganPageState extends State<KeuanganPage> {
   void initState() {
     super.initState();
     loadUserData();
-    _fetchKeuanganData(_apiService);
+    _fetchKeuanganData(_apiService, context.read<MonthCubit>().state.selectedMonth, context.read<YearCubit>().state.selectedYear);
   }
   // Method untuk memuat ulang data setelah menerima true
   void _refreshPage() {
     setState(() {
       loadUserData();
-      _fetchKeuanganData(_apiService);
+      _fetchKeuanganData(_apiService, context.read<MonthCubit>().state.selectedMonth, context.read<YearCubit>().state.selectedYear);
       // Logika refresh atau pemanggilan ulang API atau data yang diperlukan
     });
   }
@@ -59,19 +63,40 @@ class _KeuanganPageState extends State<KeuanganPage> {
           ),
 
           // tombol melayang
-          Positioned(
-            right: 20,
-            bottom: 85, // sudah aman karena ada SizedBox 110 di konten
-            child:  _FloatingAddButton(
-              onTap: () async {
-                // Tunggu hasil dari halaman tambah data
-                final result = await Navigator.pushNamed(context, '/tambah-data-keuangan');
-                
-                // Jika hasilnya true, lakukan refresh halaman
-                if (result == true) {
-                  _refreshPage();
-                }
-              },
+          Align(
+            alignment: Alignment.bottomRight,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 20, right: 20),
+              child: _FloatingAddButton(
+                onTap: () async {
+                  // Tunggu hasil dari halaman tambah data
+                  final result = await Navigator.pushNamed(context, '/tambah-data-keuangan');
+                  
+                  // Jika hasilnya true, lakukan refresh halaman
+                  if (result == true) {
+                    _refreshPage();
+                  }
+                },
+              ),
+            ),
+          ),
+
+          // tombol melayang - back button
+          Align(
+            alignment: Alignment.bottomLeft,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 20, left: 20),
+              child: _FloatingBackButton(
+                onTap: () async {
+                  // Tunggu hasil dari halaman tambah data
+                  final result = await Navigator.pushNamed(context, '/main');
+                  
+                  // Jika hasilnya true, lakukan refresh halaman
+                  if (result == true) {
+                    _refreshPage();
+                  }
+                },
+              ),
             ),
           ),
         ],
@@ -99,6 +124,35 @@ class _FloatingAddButton extends StatelessWidget {
                   image: AssetImage('assets/keuangan_assets/icons/ic_add.png'),
                   fit: BoxFit.cover,
                 ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FloatingBackButton extends StatelessWidget {
+  final VoidCallback onTap;
+  const _FloatingBackButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    // ukuran responsif biar mirip tombol AI kamu
+    final double size = (MediaQuery.of(context).size.width * 0.18).clamp(56.0, 68.0);
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: size * 1.5,
+        height: size * 0.8,
+        decoration: BoxDecoration(
+          gradient: AppColors.gradasi01,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Center(
+          child: Text("Kembali", style: AppTextStyle.semiBold.copyWith(
+            color: AppColors.primaryWhite,
+            fontSize: 16,
+          ),),
         ),
       ),
     );
@@ -207,58 +261,68 @@ Widget _buildHeaderSection(BuildContext context, String name) {
 }
 
 Widget _buildKeuanganContent(BuildContext context) {
-  final ApiService _apiService = ApiService();
+    final ApiService apiService = ApiService();
 
-  return Container(
-    margin: const EdgeInsets.only(top: 20, left: 24, right: 24),
-    transform: Matrix4.translationValues(0, 0, 0),
-    child: SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Catatan Keuanganmu',
-            style: AppTextStyle.semiBold.copyWith(fontSize: 16),
-          ),
-          const SizedBox(height: 16),
-          FutureBuilder<Map<String, int>>(
-            future: _fetchKeuanganData(_apiService),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: TernakProBoxLoading());
-              } else if (snapshot.hasError) {
-                return Center(child: Text('Error: ${snapshot.error}'));
-              } else if (!snapshot.hasData) {
-                return const Center(child: Text('Tidak ada data keuangan'));
-              }
+    return Container(
+      margin: const EdgeInsets.only(top: 20, left: 24, right: 24),
+      transform: Matrix4.translationValues(0, 0, 0),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Catatan Keuanganmu',
+              style: AppTextStyle.semiBold.copyWith(fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+            // Menggunakan BlocBuilder untuk mendengarkan perubahan bulan
+            BlocBuilder<MonthCubit, MonthState>(
+              builder: (context, monthState) {
+                return BlocBuilder<YearCubit, YearState>(
+                  builder: (context, yearState) {
+                    // Menggunakan bulan dari MonthCubit dan tahun dari YearCubit
+                    return FutureBuilder<Map<String, int>>(
+                      future: _fetchKeuanganData(apiService, monthState.selectedMonth, yearState.selectedYear), // Menggunakan bulan dan tahun dari cubit
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const Center(child: TernakProBoxLoading());
+                        } else if (snapshot.hasError) {
+                          return Center(child: Text('Error: ${snapshot.error}'));
+                        } else if (!snapshot.hasData) {
+                          return const Center(child: Text('Tidak ada data keuangan'));
+                        }
 
-              final totalPendapatan = snapshot.data!['pendapatan'] ?? 0;
-              final totalPengeluaran = snapshot.data!['pengeluaran'] ?? 0;
+                        final totalPendapatan = snapshot.data!['pendapatan'] ?? 0;
+                        final totalPengeluaran = snapshot.data!['pengeluaran'] ?? 0;
 
-              return IncomeExpenseDonutCard(
-                totalPendapatan: totalPendapatan,
-                totalPengeluaran: totalPengeluaran,
-              );
-            },
-          ),
-          const SizedBox(height: 24),
-          const KeuanganRiwayatSection(),
-        ],
+                        return IncomeExpenseDonutCard(
+                          totalPendapatan: totalPendapatan,
+                          totalPengeluaran: totalPengeluaran,
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+            const SizedBox(height: 24),
+            const KeuanganRiwayatSection(),
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
 // Fungsi untuk mengambil data pendapatan dan pengeluaran
-Future<Map<String, int>> _fetchKeuanganData(ApiService apiService) async {
+Future<Map<String, int>> _fetchKeuanganData(ApiService apiService, int selectedMonth, int selectedYear) async {
   try {
     // Ambil userId dari kredensial
     final credential = await apiService.loadCredentials();
     final userId = credential['user_id'];
 
     // Panggil API untuk pendapatan dan pengeluaran
-    final totalPendapatan = await apiService.getTotalKeuangan('pendapatan', userId);
-    final totalPengeluaran = await apiService.getTotalKeuangan('pengeluaran', userId);
+    final totalPendapatan = await apiService.getTotalKeuangan('pendapatan', selectedMonth, selectedYear, userId);
+    final totalPengeluaran = await apiService.getTotalKeuangan('pengeluaran', selectedMonth, selectedYear, userId);
 
     return {
       'pendapatan': totalPendapatan,

@@ -1,14 +1,49 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
+import 'package:ternak_pro/services/api_service.dart';
+import 'package:ternak_pro/shared/custom_loading.dart';
 import 'package:ternak_pro/shared/theme.dart';
 
-import '../../cubit/konsultasi_page_cubit.dart';
-import '../../cubit/page_cubit.dart';
 import '../../shared/widgets/custom_image_view.dart';
 import '../../shared/widgets/stats_ternak_item.dart';
 
-class DataTernakPage extends StatelessWidget {
+class DataTernakPage extends StatefulWidget {
   const DataTernakPage({super.key});
+
+  @override
+  State<DataTernakPage> createState() => _DataTernakPageState();
+}
+
+bool _isLoading = true;
+
+class _DataTernakPageState extends State<DataTernakPage> {
+
+
+  @override
+  void initState() {
+    super.initState();
+    loadUserData();
+  }
+  final ApiService _apiService = ApiService(); // Initialize your ApiService
+
+  String dataUser = '';
+  String formattedDate = '';
+  int jmlTernak = 0;
+  Future<void> loadUserData() async {
+    final credential = await _apiService.loadCredentials(); // Await the Future
+    final jmlTernakData = await _apiService.getTernakUserCount(credential['user_id']);
+    final now = DateTime.now();
+
+     // Format tanggal ke "Nama Hari, DD Bulan YYYY"
+    final dateFormat = DateFormat('EEEE, dd MMMM yyyy', 'id_ID');
+
+    setState(() {
+      dataUser = credential['name'] ?? ''; // Safe access with default value
+      jmlTernak = jmlTernakData;
+      formattedDate = dateFormat.format(now);
+      _isLoading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +53,7 @@ class DataTernakPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildHeaderSection(context),
-            _buildStatsCard(context),
+            _buildStatsCard(context, dataUser, jmlTernak, formattedDate),
             _buildTernakServices(context),
             SizedBox(height: 110), // Spacing at the bottom
           ],
@@ -71,11 +106,11 @@ Widget _buildHeaderSection(BuildContext context) {
     );
   }
 
-  Widget _buildStatsCard(BuildContext context) {
+  Widget _buildStatsCard(BuildContext context, String dataUser, int jmlTernak, String tglHariIni) {
   final fiturList = [
     StatsTernakItem(
       title: "Jumlah\nTernak",
-      keterangan: "15",
+      keterangan: jmlTernak.toString(),
       imagePath: "assets/data_ternak_assets/illustrations/cow_jumlah.png",
     ),
     // StatsTernakItem(
@@ -85,17 +120,17 @@ Widget _buildHeaderSection(BuildContext context) {
     // ),
     StatsTernakItem(
       title: "Ternak\nSakit",
-      keterangan: "0",
+      keterangan: "-",
       imagePath: "assets/data_ternak_assets/illustrations/cow_sakit.png",
     ),
     StatsTernakItem(
       title: "Ternak\nHamil",
-      keterangan: "2",
+      keterangan: "-",
       imagePath: "assets/data_ternak_assets/illustrations/cow_hamil.png",
     ),
     StatsTernakItem(
       title: "Ternak\nMeninggal",
-      keterangan: "0",
+      keterangan: "-",
       imagePath: "assets/data_ternak_assets/illustrations/cow_meninggal.png",
     ),
     // StatsTernakItem(
@@ -105,15 +140,18 @@ Widget _buildHeaderSection(BuildContext context) {
     // ),
     StatsTernakItem(
       title: "Rata-rata\nUsia",
-      keterangan: "3.4 Thn",
+      keterangan: "- Thn",
       imagePath: "assets/data_ternak_assets/illustrations/cow_usia.png",
     ),
     StatsTernakItem(
       title: "Ternak Siap\nJual",
-      keterangan: "2",
+      keterangan: "-",
       imagePath: "assets/data_ternak_assets/illustrations/cow_panen.png",
     ),
   ];
+
+   
+
 
   return LayoutBuilder(
     builder: (context, constraints) {
@@ -123,6 +161,7 @@ Widget _buildHeaderSection(BuildContext context) {
       int itemsPerRow = (maxWidth / itemWidth).floor().clamp(1, 4); // maksimal 4 item
 
       double spacing = 8;
+      
 
       return Container(
         margin: EdgeInsets.only(top: 25, left: 24, right: 24),
@@ -132,7 +171,9 @@ Widget _buildHeaderSection(BuildContext context) {
           border: Border.all(color: AppColors.grey20),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Column(
+        child: _isLoading 
+        ? const Center(child: TernakProBoxLoading()) 
+        : Column(
           children: [
             // Header
             Row(
@@ -143,7 +184,7 @@ Widget _buildHeaderSection(BuildContext context) {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Nama Peternakan",
+                      "Peternakan $dataUser",
                       style: AppTextStyle.extraBold.copyWith(fontSize: 12, color: AppColors.blackText),
                     ),
                     SizedBox(height: 4),
@@ -155,7 +196,7 @@ Widget _buildHeaderSection(BuildContext context) {
                         ),
                         SizedBox(width: 4),
                         Text(
-                          'Tanggal Mulai : Senin, 7 Juli 2025',
+                          'Tanggal: $tglHariIni',
                           style: AppTextStyle.regular.copyWith(fontSize: 12, color: AppColors.blackText),
                         ),
                       ],
@@ -241,12 +282,13 @@ Widget _buildTernakServices(BuildContext context) {
       "gradient": AppColors.gradasiFitur4,
       "onClick": (){
         // pastikan berada di tab Konsultasi
-        context.read<PageCubit>().setPage(2);
-        // tampilkan KeuanganPage di dalam tab Konsultasi
-        context.read<KonsultasiPageCubit>().setKonsultasiPage(1);
+        // context.read<PageCubit>().setPage(2);
+        // // tampilkan KeuanganPage di dalam tab Konsultasi
+        // context.read<KonsultasiPageCubit>().setKonsultasiPage(1);
 
         // (opsional) lakukan hal lain yang diperlukan, contoh:
         // context.read<KeuanganCubit>().initData();  // preload data
+        Navigator.pushNamed(context, '/keuangan');
       },
     },
   ];
