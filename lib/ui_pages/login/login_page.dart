@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ternak_pro/shared/custom_loading.dart';
 import 'package:ternak_pro/shared/theme.dart';
 import '../../shared/widgets/login_app_textfield.dart';
 import '../../services/api_service.dart';
@@ -21,6 +22,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   bool passwordError = false;
   bool emailFocused = false;
   bool passwordFocused = false;
+  bool isLoading = false; // Variabel untuk status loading
   String? errorMessage;
 
   final emailRegex = RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$");
@@ -98,6 +100,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       emailError = false;
       passwordError = false;
       errorMessage = null;
+      isLoading = true; // Mulai loading
     });
 
     String email = emailController.text.trim();
@@ -108,6 +111,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       setState(() {
         emailError = email.isEmpty;
         passwordError = password.isEmpty;
+        isLoading = false; // Selesai loading jika validasi gagal
       });
       showError("Oops! Isi form dengan lengkap dulu yah!");
       return;
@@ -116,6 +120,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     if (!emailRegex.hasMatch(email)) {
       setState(() {
         emailError = true;
+        isLoading = false; // Selesai loading jika validasi gagal
       });
       showError("Format email tidak valid!");
       return;
@@ -124,6 +129,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     if (password.length < 8) {
       setState(() {
         passwordError = true;
+        isLoading = false; // Selesai loading jika validasi gagal
       });
       showError("Password minimal 8 karakter!");
       return;
@@ -131,6 +137,9 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
 
     // Proses login
     try {
+      // Tambahkan jeda kecil untuk memastikan loading terlihat (opsional)
+      await Future.delayed(const Duration(milliseconds: 500));
+
       // Mulai proses login
       await _apiService.login(
         email: email,
@@ -146,6 +155,12 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       if (mounted) {
         // Menampilkan error jika login gagal
         showError(e.toString().replaceFirst('Exception: ', ''));
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false; // Selesai loading
+        });
       }
     }
   }
@@ -287,7 +302,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                   ),
                                 ),
                                 onPressed: () {
-                                  // Tambahkan logika untuk login dengan Google jika diperlukan
+                                  _showFeatureUserNotAvailableDialog(context);
                                 },
                               ),
                             ),
@@ -436,7 +451,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                               height: buttonHeight,
                               child: ElevatedButton(
                                 key: const Key('login_button'),
-                                onPressed: validateAndLogin,
+                                onPressed:  isLoading ? null :validateAndLogin,
                                 style: ElevatedButton.styleFrom(
                                   padding: EdgeInsets.symmetric(vertical: cardPadding * 0.5),
                                   shape: RoundedRectangleBorder(
@@ -445,7 +460,9 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                   elevation: 0,
                                   backgroundColor: const Color(0xFFFF9900),
                                 ),
-                                child: Text(
+                                child: isLoading
+                                  ? const TernakProBoxLoading()
+                                  : Text(
                                   "Masuk",
                                   key: const ValueKey('login_button_text'),
                                   style: AppTextStyle.semiBold.copyWith(
@@ -529,10 +546,61 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                     ),
                   ),
                 ),
+                // Indikator loading layar penuh
+              if (isLoading)
+                Positioned.fill(
+                  child: Container(
+                    color: Colors.white60, // Latar belakang semi-transparan
+                    child: const Center(
+                      child: TernakProBoxLoading(),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
       ),
     );
   }
+}
+
+void _showFeatureUserNotAvailableDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.0),
+        ),
+        title: const Text(
+          'Informasi',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+        content: const Text(
+          'Mohon maaf saat ini Login dengan Google belum dapat digunakan, silakan google dengan email dan password.',
+          style: TextStyle(
+            fontSize: 16,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(); // Tutup dialog
+            },
+            child: const Text(
+              'OK',
+              style: TextStyle(
+                color: Colors.blue,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      );
+    },
+  );
 }

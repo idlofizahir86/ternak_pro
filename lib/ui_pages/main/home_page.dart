@@ -11,6 +11,7 @@ import 'package:intl/intl.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ternak_pro/models/BannerItem.dart';
 
 import '../../models/DailyTaskItem.dart';
 import '../../models/TipsItem.dart';
@@ -23,6 +24,16 @@ import '../../shared/widgets/home/daily_task.dart';
 import '../../shared/widgets/custom_image_view.dart';
 import '../../shared/widgets/daily_tip_card.dart';
 import '../../shared/widgets/featured_service_card.dart';
+
+Future<bool> hasSeenBanner() async {
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getBool('hasSeenBanner') ?? false;
+}
+
+Future<void> setBannerSeen() async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setBool('hasSeenBanner', true);
+}
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -67,6 +78,82 @@ class _HomePageState extends State<HomePage> {
     _fetchTasks();
     _loadSavedLocation();
     _initializePageData();
+    _checkAndShowBanner(); //
+  }
+
+  void _checkAndShowBanner() async {
+    final seen = await hasSeenBanner();
+    if (!seen) {
+      try {
+        final banners = await _apiService.fetchBanners();
+        if (!mounted) return;
+        if (banners.isNotEmpty) {
+          _showBannerDialogs(banners);
+        }
+      } catch (e) {
+        debugPrint("Failed to load banners: $e");
+      }
+    }
+  }
+
+  void _showBannerDialogs(List<BannerItem> banners) {
+    int currentIndex = 0;
+
+    void showNextBanner() {
+      if (currentIndex >= banners.length) {
+        setBannerSeen();
+        return;
+      }
+
+      final banner = banners[currentIndex];
+
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) {
+          return Dialog(
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 24,
+              vertical: 40,
+            ),
+            backgroundColor: Colors.transparent,
+            child: Stack(
+              children: [
+                // Konten banner dengan border radius
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(18),
+                  child: Image.network(
+                    banner.bannerUrl,
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                  ),
+                ),
+
+                // Tombol close di pojok kanan atas
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      currentIndex++;
+                      showNextBanner();
+                    },
+                    child: const CircleAvatar(
+                      radius: 18,
+                      backgroundColor: Colors.black54,
+                      child: Icon(Icons.close, color: Colors.white, size: 20),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    }
+
+    showNextBanner();
   }
 
   Future<void> _initializePageData() async {
@@ -773,18 +860,21 @@ Widget _buildHeaderSection(BuildContext context, String greeting, String formatt
                   ),
                 ],
               ),
-              Container(
-                width: iconSize,
-                height: iconSize,
-                decoration: BoxDecoration(
-                  color: AppColors.white100,
-                  borderRadius: BorderRadius.circular(iconSize / 2),
-                ),
-                child: Center(
-                  child: CustomImageView(
-                    imagePath: "assets/home_assets/icons/ic_bell.png",
-                    height: iconSize * 0.6,
-                    width: iconSize * 0.6,
+              InkWell(
+                onTap: () => Navigator.pushNamed(context, '/notifikasi'),
+                child: Container(
+                  width: iconSize,
+                  height: iconSize,
+                  decoration: BoxDecoration(
+                    color: AppColors.white100,
+                    borderRadius: BorderRadius.circular(iconSize / 2),
+                  ),
+                  child: Center(
+                    child: CustomImageView(
+                      imagePath: "assets/home_assets/icons/ic_bell.png",
+                      height: iconSize * 0.6,
+                      width: iconSize * 0.6,
+                    ),
                   ),
                 ),
               ),
@@ -1331,25 +1421,29 @@ class _LocationPickerDialogState extends State<LocationPickerDialog> {
           Padding(
             padding: EdgeInsets.all(16),
             child: TypeAheadField<LocationSuggestion>(
-              textFieldConfiguration: TextFieldConfiguration(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Cari alamat atau tempat...',
-                  prefixIcon: Icon(Icons.search),
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                ),
-              ),
+              controller: _searchController, // Changed from textFieldConfiguration
+              builder: (context, controller, focusNode) {
+                return TextField(
+                  controller: controller,
+                  focusNode: focusNode,
+                  decoration: const InputDecoration(
+                    hintText: 'Cari alamat atau tempat...',
+                    prefixIcon: Icon(Icons.search),
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
+                );
+              },
               suggestionsCallback: (pattern) async {
                 return await _searchLocations(pattern);
               },
               itemBuilder: (context, suggestion) {
                 return ListTile(
-                  leading: Icon(Icons.location_on),
+                  leading: const Icon(Icons.location_on),
                   title: Text(suggestion.displayName),
                 );
               },
-              onSuggestionSelected: (suggestion) async {
+              onSelected: (suggestion) async {
                 final latLng = LatLng(double.parse(suggestion.lat), double.parse(suggestion.lon));
                 setState(() {
                   _selectedLocation = latLng;

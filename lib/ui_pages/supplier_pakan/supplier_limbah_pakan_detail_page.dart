@@ -461,14 +461,22 @@ class _SupplierLimbahPakanDetailPageState
             itemCount: images.length,
             onPageChanged: (idx) => setState(() => _currentImage = idx),
             itemBuilder: (context, index) {
+              String imagePath = images[index];
               return ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: Image.asset(
-                  images[index],
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  height: fixedHeight,
-                ),
+                child: imagePath.startsWith('http')
+                ? Image.network(
+                    imagePath,
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    height: fixedHeight,
+                  )
+                : Image.asset(
+                    imagePath,
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    height: fixedHeight,
+                  ),
               );
             },
           ),
@@ -585,7 +593,15 @@ class _OutlinedActionButton extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset(iconPath, height: iconSize),
+            iconPath.startsWith('http')
+            ? Image.network(
+                iconPath,
+                height: iconSize,
+              )
+            : Image.asset(
+                iconPath,
+                height: iconSize,
+              ),
             const SizedBox(width: 8),
             Flexible(
               child: FittedBox(
@@ -643,7 +659,15 @@ class _FilledActionButton extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset(iconPath, height: iconSize),
+            iconPath.startsWith('http')
+            ? Image.network(
+                iconPath,
+                height: iconSize,
+              )
+            : Image.asset(
+                iconPath,
+                height: iconSize,
+              ),
             const SizedBox(width: 8),
             Flexible(
               child: FittedBox(

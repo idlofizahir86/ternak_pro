@@ -23,7 +23,9 @@ class CustomAppBar extends PreferredSize {
           ),
           leading: IconButton(
             icon: Icon(Icons.arrow_back, color: AppColors.green01),
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () {
+              Navigator.pushNamed(context, '/main');
+            },
           ),
         );
       },

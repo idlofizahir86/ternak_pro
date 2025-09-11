@@ -36,6 +36,7 @@ import 'ui_pages/biaya_pakan/perkiraan_biaya_pakan_page.dart';
 import 'ui_pages/harga_pasar/harga_pasar_page.dart';
 import 'ui_pages/konsultasi_pakan/konsultasi_pakan_page.dart';
 import 'ui_pages/main/main_page_mobile.dart';
+import 'ui_pages/main/notifikasi_page.dart';
 import 'ui_pages/rekomendasi_ternak/hasil_rekomendasi_ternak_page.dart';
 import 'ui_pages/supplier_pakan/supplier_limbah_pakan_page.dart';
 import 'ui_pages/tips_harian/tips_harian_detail_page.dart';
@@ -164,6 +165,8 @@ class MyApp extends StatelessWidget {
           '/': (context) => const SplashPage(),
           
           '/main': (context) => MainPageMobile(),
+
+          '/notifikasi': (context) => NotifikasiPage(),
           
           '/onboarding/1': (context) => const Onboarding1(),
           '/onboarding/2': (context) => const Onboarding2(),

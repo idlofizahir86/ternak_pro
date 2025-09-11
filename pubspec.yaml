@@ -59,7 +59,9 @@ dependencies:
   latlong2: ^0.9.1
   geolocator: ^12.0.0
   geocoding: ^3.0.0
-  flutter_typeahead: ^4.4.1  # Untuk search suggestions
+  flutter_typeahead: ^5.2.0  # Untuk search suggestions
+
+  auto_size_text: ^3.0.0
 
   # webview_flutter: ^4.13.0
   # webview_flutter_android: ^3.16.7

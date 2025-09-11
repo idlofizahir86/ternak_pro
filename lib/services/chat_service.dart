@@ -18,45 +18,43 @@ class ChatService {
   }
 
   // Kirim pesan ke AI
-  // Di ChatService, tambahkan timeout dan error handling
-Future<Map<String, dynamic>> sendMessage({
-  required String userId,
-  required String message,
-  int? conversationId,
-}) async {
-  try {
-    final response = await http.post(
-      Uri.parse('$baseUrl/ai/chat'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $authToken',
-      },
-      body: json.encode({
-        'user_id': userId,
-        'message': message,
-        'conversation_id': 1,
-      }),
-    ).timeout(Duration(seconds: 30)); // Timeout 30 detik
+  Future<Map<String, dynamic>> sendMessage({
+    required String userId,
+    required String message,
+    int? conversationId,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/ai/chat/deepseek'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $authToken',
+        },
+        body: json.encode({
+          'user_id': userId,
+          'message': message,
+          'conversation_id': conversationId, // Gunakan dynamic conversationId
+        }),
+      ).timeout(Duration(seconds: 30));
 
-    if (response.statusCode == 200) {
-      return json.decode(response.body);
-    } else if (response.statusCode == 401) {
-      // Token expired, redirect to login
-      throw Exception('Session expired. Please login again.');
-    } else {
-      throw Exception('Server error: ${response.statusCode}');
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else if (response.statusCode == 401) {
+        throw Exception('Session expired. Please login again.');
+      } else {
+        throw Exception('Server error: ${response.statusCode}');
+      }
+    } on http.ClientException catch (e) {
+      throw Exception('Network error: $e');
+    } on TimeoutException catch (e) {
+      throw Exception('Request timeout: $e');
     }
-  } on http.ClientException catch (e) {
-    throw Exception('Network error: $e');
-  } on TimeoutException catch (e) {
-    throw Exception('Request timeout: $e');
   }
-}
 
   // Mulai percakapan baru
   Future<Map<String, dynamic>> startNewConversation(String userId) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/ai/chat/new'),
+      Uri.parse('$baseUrl/ai/chat/deepseek/new'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $authToken',
@@ -76,7 +74,7 @@ Future<Map<String, dynamic>> sendMessage({
   // Dapatkan semua percakapan user
   Future<List<dynamic>> getConversations(String userId) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/ai/conversations'),
+      Uri.parse('$baseUrl/ai/conversations/deepseek'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $authToken',
@@ -96,7 +94,7 @@ Future<Map<String, dynamic>> sendMessage({
   // Dapatkan percakapan spesifik
   Future<Map<String, dynamic>> getConversation(String userId, int conversationId) async {
     final response = await http.get(
-      Uri.parse('$baseUrl/ai/conversation/$userId/$conversationId'),
+      Uri.parse('$baseUrl/ai/conversation/deepseek/$userId/$conversationId'),
       headers: {
         'Authorization': 'Bearer $authToken',
       },
@@ -112,7 +110,7 @@ Future<Map<String, dynamic>> sendMessage({
   // Hapus percakapan
   Future<void> deleteConversation(String userId, int conversationId) async {
     final response = await http.delete(
-      Uri.parse('$baseUrl/ai/conversation/$userId/$conversationId'),
+      Uri.parse('$baseUrl/ai/conversation/deepseek/$userId/$conversationId'),
       headers: {
         'Authorization': 'Bearer $authToken',
       },

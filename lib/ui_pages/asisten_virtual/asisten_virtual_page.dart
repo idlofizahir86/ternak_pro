@@ -21,7 +21,7 @@ class _AsistenVirtualPageState extends State<AsistenVirtualPage> {
   final ScrollController _scrollController = ScrollController();
   bool isTyping = false;
   bool isListening = false;
-  bool isLoadingAI = false; // Tambahkan state untuk loading AI
+  bool isLoadingAI = false;
   late stt.SpeechToText _speech;
   Duration _recordDuration = Duration.zero;
   late Ticker _ticker;
@@ -42,7 +42,6 @@ class _AsistenVirtualPageState extends State<AsistenVirtualPage> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadUserData();
-      _loadMessages();
       _unfocusKeyboard();
 
       if (widget.initialText != null &&
@@ -57,72 +56,72 @@ class _AsistenVirtualPageState extends State<AsistenVirtualPage> {
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _currentUserId = prefs.getString('user_id'); // Pastikan simpan user_uid saat login
+      _currentUserId = prefs.getString('user_id');
     });
-  }
 
-  Future<void> _loadMessages() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedMessages = prefs.getStringList('chatMessages') ?? [];
-
-    if (savedMessages.isEmpty) {
-      // Jika kosong, isi pesan pembuka
+    if (_currentUserId != null) {
+      await _loadOrCreateConversation();
+    } else {
+      // Jika tidak ada user ID, gunakan mode guest atau handle error
       setState(() {
         messages = [
           {'ai': "Halo! 👋 Saya adalah asisten virtual TernakPro."},
-          {'ai': "Saya siap membantu Anda dengan segala pertanyaan tentang peternakan."},
+          {'ai': "Silakan login untuk menggunakan fitur penuh."},
         ];
       });
-      _saveMessages();
-    } else {
-      // Load pesan dari local storage
-      setState(() {
-        messages = savedMessages
-            .map((msg) => msg.startsWith('user:')
-                ? {'user': msg.substring(5)}
-                : {'ai': msg.substring(3)})
-            .toList();
-      });
-    }
-
-    // Load percakapan dari server jika ada user ID
-    if (_currentUserId != null) {
-      try {
-        final conversations = await _chatService.getConversations(_currentUserId!);
-        if (conversations.isNotEmpty) {
-          // Ambil percakapan terbaru
-          final latestConversation = conversations.first;
-          _currentConversationId = latestConversation['id'];
-          
-          // Load messages dari percakapan ini
-          final conversationData = await _chatService.getConversation(
-            _currentUserId!, 
-            _currentConversationId!
-          );
-          
-          // Tambahkan messages dari server ke local
-          final serverMessages = conversationData['messages'] ?? [];
-          for (var msg in serverMessages) {
-            if (msg['role'] == 'user') {
-              messages.add({'user': msg['content']});
-            } else {
-              messages.add({'ai': msg['content']});
-            }
-          }
-          
-          _saveMessages();
-        }
-      } catch (e) {
-        print('Error loading conversations: $e');
-      }
     }
   }
 
-  Future<void> _saveMessages() async {
-    final prefs = await SharedPreferences.getInstance();
-    final saved = messages.map((msg) =>
-        msg.containsKey('user') ? 'user:${msg['user']}' : 'ai:${msg['ai']}').toList();
-    await prefs.setStringList('chatMessages', saved);
+  Future<void> _loadOrCreateConversation() async {
+    try {
+      final conversations = await _chatService.getConversations(_currentUserId!);
+      if (conversations.isNotEmpty) {
+        // Ambil percakapan terbaru (asumsikan sorted descending by date)
+        final latestConversation = conversations.first;
+        _currentConversationId = latestConversation['id'];
+        
+        // Load messages dari percakapan ini
+        await _loadConversationMessages();
+      } else {
+        // Buat percakapan baru jika tidak ada
+        final newConv = await _chatService.startNewConversation(_currentUserId!);
+        _currentConversationId = newConv['conversation_id'];
+        
+        // Tambahkan pesan pembuka dari AI (bisa dari server atau local)
+        setState(() {
+          messages.add({'ai': "Halo! 👋 Saya adalah asisten virtual TernakPro."});
+          messages.add({'ai': "Saya siap membantu Anda dengan segala pertanyaan tentang peternakan."});
+        });
+        
+        // Opsional: Kirim pesan pembuka ke server jika diperlukan
+      }
+      
+      // Scroll ke bawah setelah load
+      _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+    } catch (e) {
+      print('Error loading/creating conversation: $e');
+      setState(() {
+        messages.add({'ai': 'Maaf, gagal memuat percakapan. Silakan coba lagi.'});
+      });
+    }
+  }
+
+  Future<void> _loadConversationMessages() async {
+    try {
+      final conversationData = await _chatService.getConversation(
+        _currentUserId!, 
+        _currentConversationId!
+      );
+      
+      final serverMessages = conversationData['messages'] ?? [];
+      setState(() {
+        messages = serverMessages.map<Map<String, String>>((msg) {
+          return msg['role'] == 'user' ? {'user': msg['content']} : {'ai': msg['content']};
+        }).toList();
+      });
+    } catch (e) {
+      print('Error loading messages: $e');
+    }
   }
 
   void _unfocusKeyboard() {
@@ -138,7 +137,7 @@ class _AsistenVirtualPageState extends State<AsistenVirtualPage> {
 
   // Handler untuk mengirim pesan
   Future<void> _handleSendMessage(String text) async {
-    if (text.isEmpty) return;
+    if (text.isEmpty || isLoadingAI) return; // Cegah kirim jika sedang loading
     
     _clearInputText();
     _unfocusKeyboard();
@@ -146,10 +145,8 @@ class _AsistenVirtualPageState extends State<AsistenVirtualPage> {
     // Tambahkan pesan user ke UI
     setState(() {
       messages.add({'user': text});
-      isLoadingAI = true; // Tampilkan loading AI
+      isLoadingAI = true;
     });
-    
-    _saveMessages();
     
     // Scroll ke bawah
     _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
@@ -157,7 +154,7 @@ class _AsistenVirtualPageState extends State<AsistenVirtualPage> {
     try {
       // Kirim ke API
       final response = await _chatService.sendMessage(
-        userId: _currentUserId ?? 'default-user', // Fallback jika user belum login
+        userId: _currentUserId ?? 'default-user',
         message: text,
         conversationId: _currentConversationId,
       );
@@ -173,9 +170,7 @@ class _AsistenVirtualPageState extends State<AsistenVirtualPage> {
         isLoadingAI = false;
       });
       
-      _saveMessages();
-      
-      // Scroll ke bawah lagi setelah AI merespon
+      // Scroll ke bawah lagi
       _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
       
     } catch (e) {
@@ -184,12 +179,12 @@ class _AsistenVirtualPageState extends State<AsistenVirtualPage> {
         messages.add({'ai': 'Maaf, terjadi kesalahan. Silakan coba lagi.'});
         isLoadingAI = false;
       });
-      _saveMessages();
       print('Error sending message: $e');
     }
   }
 
   void _startListening() async {
+    if (isLoadingAI) return; // Cegah jika sedang loading
     bool available = await _speech.initialize();
     if (available) {
       setState(() {
@@ -217,6 +212,7 @@ class _AsistenVirtualPageState extends State<AsistenVirtualPage> {
   }
 
   void _showSlashMenu() {
+    if (isLoadingAI) return; // Cegah jika sedang loading
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -250,6 +246,26 @@ class _AsistenVirtualPageState extends State<AsistenVirtualPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _clearChatHistory() async {
+    if (_currentUserId == null || _currentConversationId == null) {
+      setState(() {
+        messages.clear();
+      });
+      return;
+    }
+
+    try {
+      await _chatService.deleteConversation(_currentUserId!, _currentConversationId!);
+      // Buat percakapan baru setelah delete
+      await _loadOrCreateConversation();
+    } catch (e) {
+      print('Error clearing history: $e');
+      setState(() {
+        messages.add({'ai': 'Gagal membersihkan riwayat. Silakan coba lagi.'});
+      });
+    }
   }
 
   @override
@@ -302,7 +318,6 @@ class _AsistenVirtualPageState extends State<AsistenVirtualPage> {
                                 child: _botChat(msg['ai']!),
                               );
                       } else {
-                        // Tampilkan loading indicator saat AI sedang merespon
                         return _buildLoadingAI();
                       }
                     },
@@ -364,10 +379,6 @@ class _AsistenVirtualPageState extends State<AsistenVirtualPage> {
     );
   }
 
-  // ... (Widget _buildHeader, _buildChatInput, _botChat, _userChat tetap sama)
-  // Hanya perlu menyesuaikan onTap untuk menggunakan _handleSendMessage
-
-  
   Widget _buildHeader(BuildContext context) {
     return SafeArea(
       child: Container(
@@ -404,20 +415,10 @@ class _AsistenVirtualPageState extends State<AsistenVirtualPage> {
                         leading: Icon(Icons.delete_forever),
                         title: Text("Bersihkan riwayat chat"),
                         onTap: () async {
-                          final prefs = await SharedPreferences.getInstance();
-                          await prefs.remove('chatMessages');
-
-                          // 2) Pastikan widget masih ter-mount
-                          if (!mounted) return; // kalau di State class; atau if (!context.mounted) return;
-
-                          setState(() {
-                            messages.clear();
-                            messages.add({'ai': "Halo Adam👋, Kenalin Aku Siternak Asisten Ternak Pribadimu !"});
-                            messages.add({'ai': "Bagaimana Aku Bisa Membantumu ☺️ ?"});
-                          });
-
-                          if (!sheetContext.mounted) return;
-                          Navigator.of(context).pop();
+                          await _clearChatHistory();
+                          if (sheetContext.mounted) {
+                            Navigator.of(sheetContext).pop();
+                          }
                         },
                       ),
                     ],
@@ -426,7 +427,6 @@ class _AsistenVirtualPageState extends State<AsistenVirtualPage> {
               },
               child: Image.asset('assets/ai_chat_assets/icons/ic_more.png', height: 20),
             ),
-
           ],
         ),
       ),
@@ -437,108 +437,113 @@ class _AsistenVirtualPageState extends State<AsistenVirtualPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       color: Colors.white,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
+      child: AbsorbPointer(
+        absorbing: isLoadingAI, // Disable input saat loading
+        child: Opacity(
+          opacity: isLoadingAI ? 0.5 : 1.0, // Visual feedback
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              GestureDetector(
-                onTap: _showSlashMenu,
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppColors.bgLight,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Image.asset('assets/ai_chat_assets/icons/ic_slash.png', width: 32),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(maxHeight: 120),
-                  child: Scrollbar(
-                    child: TextField(
-                      controller: controller,
-                      onChanged: (val) => setState(() => isTyping = val.trim().isNotEmpty),
-                      maxLines: null,
-                      onSubmitted: (val) {
-                        if (val.trim().isNotEmpty) {
-                          _stopListening(); 
-                          _handleSendMessage(val.trim());
-                        }
-                      },
-                      decoration: InputDecoration(
-                        hintText: "Tulis pertanyaan...",
-                        hintStyle: AppTextStyle.regular.copyWith(color: AppColors.grey2, fontSize: 14),
-                        border: InputBorder.none,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              isTyping
-                  ? GestureDetector(
-                      onTap: () { 
-                        _stopListening();
-                        _handleSendMessage(controller.text.trim());
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          gradient: AppColors.gradasi01,
-                          borderRadius: BorderRadius.circular(80),
-                          border: Border.all(color: AppColors.grey20),
-                        ),
-                        child: Image.asset('assets/ai_chat_assets/icons/ic_send.png', width: 25),
-                      ),
-                    )
-                  : GestureDetector(
-                      onTap: isListening ? _stopListening : _startListening,
-                      child: Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: AppColors.bgLight,
-                          borderRadius: BorderRadius.circular(80),
-                          border: Border.all(color: AppColors.grey20),
-                        ),
-                        child: Image.asset('assets/ai_chat_assets/icons/ic_mic.png', width: 25),
-                      ),
-                    ),
-            ],
-          ),
-          if (isListening)
-            Padding(
-              padding: const EdgeInsets.only(top: 4.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Row(
                 children: [
-                  Text(
-                    "⏱ ${_recordDuration.inMinutes.toString().padLeft(2, '0')}:${(_recordDuration.inSeconds % 60).toString().padLeft(2, '0')}",
-                    style: TextStyle(color: Colors.red),
-                  ),
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: Icon(Icons.close, color: Colors.red),
-                        onPressed: () {
-                          controller.clear();
-                          _stopListening();
-                          _clearInputText();      
-                          _unfocusKeyboard();
-                        },
+                  GestureDetector(
+                    onTap: _showSlashMenu,
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.bgLight,
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                    ],
-                  )
+                      child: Image.asset('assets/ai_chat_assets/icons/ic_slash.png', width: 32),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxHeight: 120),
+                      child: Scrollbar(
+                        child: TextField(
+                          controller: controller,
+                          onChanged: (val) => setState(() => isTyping = val.trim().isNotEmpty),
+                          maxLines: null,
+                          onSubmitted: (val) {
+                            if (val.trim().isNotEmpty) {
+                              _stopListening(); 
+                              _handleSendMessage(val.trim());
+                            }
+                          },
+                          decoration: InputDecoration(
+                            hintText: "Tulis pertanyaan...",
+                            hintStyle: AppTextStyle.regular.copyWith(color: AppColors.grey2, fontSize: 14),
+                            border: InputBorder.none,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  isTyping
+                      ? GestureDetector(
+                          onTap: () { 
+                            _stopListening();
+                            _handleSendMessage(controller.text.trim());
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              gradient: AppColors.gradasi01,
+                              borderRadius: BorderRadius.circular(80),
+                              border: Border.all(color: AppColors.grey20),
+                            ),
+                            child: Image.asset('assets/ai_chat_assets/icons/ic_send.png', width: 25),
+                          ),
+                        )
+                      : GestureDetector(
+                          onTap: isListening ? _stopListening : _startListening,
+                          child: Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: AppColors.bgLight,
+                              borderRadius: BorderRadius.circular(80),
+                              border: Border.all(color: AppColors.grey20),
+                            ),
+                            child: Image.asset('assets/ai_chat_assets/icons/ic_mic.png', width: 25),
+                          ),
+                        ),
                 ],
               ),
-            ),
-        ],
+              if (isListening)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "⏱ ${_recordDuration.inMinutes.toString().padLeft(2, '0')}:${(_recordDuration.inSeconds % 60).toString().padLeft(2, '0')}",
+                        style: TextStyle(color: Colors.red),
+                      ),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: Icon(Icons.close, color: Colors.red),
+                            onPressed: () {
+                              controller.clear();
+                              _stopListening();
+                              _clearInputText();      
+                              _unfocusKeyboard();
+                            },
+                          ),
+                        ],
+                      )
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
-
 
   Widget _botChat(String text) {
     return Row(

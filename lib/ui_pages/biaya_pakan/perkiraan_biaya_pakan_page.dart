@@ -127,9 +127,12 @@ class _CustomDropdownInputTernakState extends State<CustomDropdownInputTernak> {
     // Initialize selectedValue with the initial value from the parent widget
     selectedValue = widget.selectedValue;
   }
+  
 
   @override
   Widget build(BuildContext context) {
+    String imageUrl = widget.iconOptions[widget.options.indexOf(selectedValue)];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -158,11 +161,17 @@ class _CustomDropdownInputTernakState extends State<CustomDropdownInputTernak> {
                   children: [
                     // Memastikan selectedValue ada dalam options sebelum mencoba mengakses index
                     if (widget.options.contains(selectedValue))
-                      Image.asset(
-                        widget.iconOptions[widget.options.indexOf(selectedValue)],
-                        width: 16,
-                        height: 16,
-                      )
+                      imageUrl.startsWith('http')
+                      ? Image.network(
+                          imageUrl,
+                          width: 16,
+                          height: 16,
+                        )
+                      : Image.asset(
+                          imageUrl,
+                          width: 16,
+                          height: 16,
+                        )
                     else
                       SizedBox(width: 16), // Placeholder jika selectedValue tidak ada dalam options
                     SizedBox(width: 8),
@@ -210,17 +219,24 @@ class _CustomDropdownInputTernakState extends State<CustomDropdownInputTernak> {
             child: ListBody(
               children: widget.options.asMap().entries.map((entry) {
                 int index = entry.key;
+                String imageUrl = widget.iconOptions[index];
                 String option = entry.value;
                 return RadioListTile<String>(
                   title: Row(
                     children: [
                       // Menampilkan ikon hanya jika isNeedIcon true
                       if (widget.isNeedIcon)
-                        Image.asset(
-                          widget.iconOptions[index], // Menampilkan ikon berdasarkan urutan
-                          width: 16,
-                          height: 16,
-                        ),
+                        imageUrl.startsWith('http')
+                        ? Image.network(
+                            imageUrl,
+                            width: 16,
+                            height: 16,
+                          )
+                        : Image.asset(
+                            imageUrl,
+                            width: 16,
+                            height: 16,
+                          ),
                       SizedBox(width: 10),
                       Text(
                         option,

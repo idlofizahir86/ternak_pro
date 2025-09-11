@@ -373,7 +373,15 @@ class FiturTernakItem extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center, // ✅ Tengah vertikal
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Image.asset(imagePath, height: 37),
+              imagePath.startsWith('http')
+              ? Image.network(
+                  imagePath,
+                  height: 37,
+                )
+              : Image.asset(
+                  imagePath,
+                  height: 37,
+                ),
               const SizedBox(height: 6),
               Flexible(
                 child: Text(

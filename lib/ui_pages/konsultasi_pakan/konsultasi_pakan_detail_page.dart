@@ -438,7 +438,15 @@ class _FilledActionButton extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset(iconPath, height: iconSize),
+            iconPath.startsWith('http')
+            ? Image.network(
+                iconPath,
+                height: iconSize,
+              )
+            : Image.asset(
+                iconPath,
+                height: iconSize,
+              ),
             const SizedBox(width: 8),
             Flexible(
               child: FittedBox(

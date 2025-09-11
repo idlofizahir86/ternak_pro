@@ -27,21 +27,170 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   // Fungsi logout yang memanggil metode logout dari ApiService
-  void _logOut() async {
+   Future<void> _logOut(BuildContext context) async {
+    // Tampilkan modal konfirmasi
+    final bool? shouldLogout = await showLogoutConfirmationDialog(context);
+
+    if (shouldLogout != true) {
+      return; // Jika pengguna membatalkan logout, keluar dari fungsi
+    }
+
     setState(() {
       _isLoading = true; // Mulai loading
     });
 
     try {
+      // Tambahkan jeda waktu untuk menunjukkan loading (misalnya 1,5 detik)
+      await Future.delayed(const Duration(milliseconds: 4000));
+      
       // Memanggil logout melalui instance ApiService
       await ApiService.logout(context);
     } catch (e) {
       print("Error during logout: $e");
+      // Tampilkan pesan error kepada pengguna
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Gagal logout: $e',
+            style: AppTextStyle.medium.copyWith(
+              fontSize: 14,
+              color: AppColors.white100,
+            ),
+          ),
+          backgroundColor: AppColors.red,
+        ),
+      );
     } finally {
       setState(() {
         _isLoading = false; // Selesai loading
       });
     }
+  }
+
+  // Fungsi untuk menampilkan modal konfirmasi logout
+  Future<bool?> showLogoutConfirmationDialog(BuildContext context) async {
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: false, // Tidak bisa menutup dialog dengan tap di luar
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: AppColors.bgLight,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          contentPadding: const EdgeInsets.all(16),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Ikon logout
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  gradient: AppColors.gradasi01WithOpacity20,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Center(
+                  child: Icon(
+                    Icons.logout,
+                    size: 34,
+                    color: AppColors.black100,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              // Judul
+              Text(
+                'Konfirmasi Logout',
+                textAlign: TextAlign.center,
+                style: AppTextStyle.semiBold.copyWith(
+                  fontSize: 18,
+                  color: AppColors.black100,
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Pesan
+              Text(
+                'Apakah Anda yakin ingin keluar dari akun Anda?',
+                textAlign: TextAlign.center,
+                style: AppTextStyle.medium.copyWith(
+                  fontSize: 14,
+                  color: AppColors.black100,
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Tombol
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Tombol Batal
+                  Expanded(
+                    child: SizedBox(
+                      height: 50,
+                      child: Material(
+                        color: Colors.transparent,
+                        child: Ink(
+                          decoration: BoxDecoration(
+                            color: AppColors.blue10,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(16),
+                            onTap: () {
+                              Navigator.of(context).pop(false); // Kembalikan false untuk batal
+                            },
+                            child: Center(
+                              child: Text(
+                                'Batal',
+                                style: AppTextStyle.semiBold.copyWith(
+                                  fontSize: 16,
+                                  color: AppColors.black100,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  // Tombol Keluar
+                  Expanded(
+                    child: SizedBox(
+                      height: 50,
+                      child: Material(
+                        color: Colors.transparent,
+                        child: Ink(
+                          decoration: BoxDecoration(
+                            gradient: AppColors.gradasi01,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(16),
+                            onTap: () {
+                              Navigator.of(context).pop(true); // Kembalikan true untuk lanjut logout
+                            },
+                            child: Center(
+                              child: Text(
+                                'Keluar',
+                                style: AppTextStyle.semiBold.copyWith(
+                                  fontSize: 16,
+                                  color: AppColors.white100,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   String dataUser = '';
@@ -58,23 +207,32 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       key: const Key('profile_page'),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Jika sedang loading, tampilkan TernakProBoxLoading
-            if (_isLoading)
-              Center(
-                child: TernakProBoxLoading(), // Indikator loading
+      body: Stack(
+        children: [
+          // Konten utama
+          SingleChildScrollView(
+            child: Column(
+              children: [
+                _buildHeaderSection(context, dataUser),
+                _pribadiSettings(context, dataUser, email),
+                _aplikasiSettings(context),
+                _panduanSettings(context),
+                _logOutSettings(context),
+                const SizedBox(height: 110), // Spacing at the bottom
+              ],
+            ),
+          ),
+          // Indikator loading
+          if (_isLoading)
+            Positioned.fill(
+              child: Container(
+                color: Colors.white60, // Background transparan
+                child: Center(
+                  child: TernakProBoxLoading(),
+                ),
               ),
-            if (!_isLoading)  
-              _buildHeaderSection(context, dataUser),
-              _pribadiSettings(context, dataUser, email),
-              _aplikasiSettings(context),
-              _panduanSettings(context),
-              _logOutSettings(context),
-              SizedBox(height: 110), // Spacing at the bottom
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
@@ -97,7 +255,7 @@ class _ProfilePageState extends State<ProfilePage> {
             placeHolder: '', 
             onTap: (){
               // Memanggil fungsi logout saat item di-tap
-              _logOut();
+              _logOut(context);
             }
           ),
         ],
@@ -134,34 +292,37 @@ Widget _buildHeaderSection(BuildContext context, dataUser) {
               children: [
                 Row(
                   children: [
-                    Stack(
-                      children: [
-                        Container(
-                          width: 75,
-                          height: 75,
-                          decoration: BoxDecoration(
-                            border: BoxBorder.all(
-                              color: AppColors.primaryWhite,
-                              width: 0.3,
-                            ),
-                            borderRadius: BorderRadius.circular(100),
-                          ),
-                          child: Image.asset('assets/profile_assets/icons/ic_farmer.png'),),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: Container(
-                              width: 23,
-                              height: 23,
-                              padding: EdgeInsets.all(5),
-                              decoration: BoxDecoration(
+                    InkWell(
+                      onTap: () => _showFeatureUserNotAvailableDialog(context),
+                      child: Stack(
+                        children: [
+                          Container(
+                            width: 75,
+                            height: 75,
+                            decoration: BoxDecoration(
+                              border: BoxBorder.all(
                                 color: AppColors.primaryWhite,
-                                borderRadius: BorderRadius.circular(100),
+                                width: 0.3,
                               ),
-                              child: Image.asset('assets/profile_assets/icons/ic_pencil.png'),
-                              ),
-                          ),
-                      ],
+                              borderRadius: BorderRadius.circular(100),
+                            ),
+                            child: Image.asset('assets/profile_assets/icons/ic_farmer.png'),),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                width: 23,
+                                height: 23,
+                                padding: EdgeInsets.all(5),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primaryWhite,
+                                  borderRadius: BorderRadius.circular(100),
+                                ),
+                                child: Image.asset('assets/profile_assets/icons/ic_pencil.png'),
+                                ),
+                            ),
+                        ],
+                      ),
                     ),
                     SizedBox(width: 17), 
                     Column(

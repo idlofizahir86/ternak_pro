@@ -1,7 +1,9 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:ternak_pro/services/api_service.dart';
 import 'package:ternak_pro/shared/widgets/data_ternak/custom_drop_down_kelamin.dart';
 
+import '../../custom_loading.dart';
 import '../../theme.dart';
 import '../onboarding_buttom.dart';
 import 'custom_drop_down_sehat.dart';
@@ -60,7 +62,8 @@ class CustomTernakItem extends StatelessWidget {
   final String status;
   final Function(Map<String, dynamic>) onUpdate;
 
-  const CustomTernakItem({super.key, 
+  const CustomTernakItem({
+    super.key,
     required this.id,
     required this.idTernak,
     required this.jenis,
@@ -75,12 +78,12 @@ class CustomTernakItem extends StatelessWidget {
       onTap: () async {
         final updatedData = await showDataTernakDialog(context, id, idTernak, jenis, berat, status);
         if (updatedData != null) {
-          onUpdate(updatedData); // Perbarui daftar di parent
+          onUpdate(updatedData);
         }
       },
       child: Container(
-        margin: EdgeInsets.only(top: 8, left: 16, right: 16),
-        padding: EdgeInsets.symmetric(vertical: 10, horizontal: 9),
+        margin: const EdgeInsets.only(top: 8, left: 16, right: 16),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 9),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(10),
@@ -89,90 +92,128 @@ class CustomTernakItem extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            InkWell(
-              onTap: () async{
-                // Panggil fungsi untuk membuka modal saat item ditekan
-                final updatedData = await showDataTernakDialog(context, id, idTernak, jenis, berat, status);
-                if (updatedData != null) {
-                  onUpdate(updatedData); // Perbarui daftar di parent
-                }
-              },
-              child: Image.asset('assets/data_ternak_assets/icons/ic_cow_hd.png', width: 50, height: 50)),
-            InkWell(
-              onTap: () async {
-                final updatedData = await showDataTernakDialog(context, id, idTernak, jenis, berat, status);
-                if (updatedData != null) {
-                  onUpdate(updatedData); // Perbarui daftar di parent
-                }
-              },
-              child: Text(id, style: AppTextStyle.extraBold.copyWith(fontSize: 14, color: Colors.black))),
-            InkWell(
-              onTap: () async {
-                final updatedData = await showDataTernakDialog(context, id, idTernak, jenis, berat, status);
-                if (updatedData != null) {
-                  onUpdate(updatedData); // Perbarui daftar di parent
-                }
-              },
-              child: Text(
-                jenis,
+            // Ikon sapi (fixed width)
+            Image.asset(
+              'assets/data_ternak_assets/icons/ic_cow_hd.png',
+              width: 50,
+              height: 50,
+            ),
+            const SizedBox(width: 8),
+            // Teks ID dengan scroll dan tooltip
+            Expanded(
+              child: _buildScrollableText(
+                context,
+                text: id,
+                style: AppTextStyle.extraBold.copyWith(fontSize: 14, color: Colors.black),
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Teks Jenis dengan scroll dan tooltip
+            Expanded(
+              child: _buildScrollableText(
+                context,
+                text: jenis,
                 style: AppTextStyle.semiBold.copyWith(
                   fontSize: 14,
-                  color: (jenis == 'Jantan') ? AppColors.green01 : AppColors.purple,
+                  color: jenis == 'Jantan' ? AppColors.green01 : AppColors.purple,
                 ),
               ),
             ),
-            InkWell(
-              onTap: () async {
-                final updatedData = await showDataTernakDialog(context, id, idTernak, jenis, berat, status);
-                if (updatedData != null) {
-                  onUpdate(updatedData); // Perbarui daftar di parent
-                }
-              },
-              child: Text(
-                "$berat Kg",
+            const SizedBox(width: 8),
+            // Teks Berat dengan scroll dan tooltip
+            Expanded(
+              child: _buildScrollableText(
+                context,
+                text: "$berat Kg",
                 style: AppTextStyle.semiBold.copyWith(
                   fontSize: 14,
                   color: AppColors.blue01,
                 ),
               ),
             ),
+            const SizedBox(width: 8),
+            // Bagian status + ikon (tetap di ujung kanan)
             Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                InkWell(
-                  onTap: () {
-                  },
-                  child: Image.asset(status == 'Sehat' ? 'assets/home_assets/icons/ic_check_green.png' : 'assets/home_assets/icons/ic_check_yellow.png', width: 14, height: 14)),
-                SizedBox(width: 4),
-                InkWell(
-                  onTap: () {
-                  },
-                  child: Text(
-                    status,
-                    style: AppTextStyle.semiBold.copyWith(
-                      fontSize: 14,
-                      color: status == 'Sehat'
-                          ? AppColors.green01
-                          : (status == 'Sakit' ? AppColors.primaryRed : AppColors.yellow500),
-                    ),
+                Image.asset(
+                  status == 'Sehat'
+                      ? 'assets/home_assets/icons/ic_check_green.png'
+                      : 'assets/home_assets/icons/ic_check_yellow.png',
+                  width: 14,
+                  height: 14,
+                ),
+                const SizedBox(width: 4),
+                // Teks Status dengan scroll dan tooltip
+                _buildScrollableText(
+                  context,
+                  text: status,
+                  style: AppTextStyle.semiBold.copyWith(
+                    fontSize: 14,
+                    color: status == 'Sehat'
+                        ? AppColors.green01
+                        : (status == 'Sakit' ? AppColors.primaryRed : AppColors.yellow500),
                   ),
                 ),
-                SizedBox(width: 10),
-                InkWell(
-                  onTap: () {
-                  },
-                  child: Image.asset('assets/home_assets/icons/ic_dropdown.png', width: 14, height: 14)
+                const SizedBox(width: 10),
+                Image.asset(
+                  'assets/home_assets/icons/ic_dropdown.png',
+                  width: 14,
+                  height: 14,
                 ),
-                SizedBox(width: 10),
-                InkWell(
-                  onTap: () {
-                  },
-                  child: Image.asset('assets/home_assets/icons/ic_more.png', width: 18, height: 18)
+                const SizedBox(width: 10),
+                Image.asset(
+                  'assets/home_assets/icons/ic_more.png',
+                  width: 18,
+                  height: 18,
                 ),
               ],
             ),
           ],
         ),
       ),
+    );
+  }
+
+  // Widget untuk teks yang bisa di-scroll jika terpotong, dengan tooltip
+  Widget _buildScrollableText(BuildContext context, {required String text, required TextStyle style}) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Hitung apakah teks terpotong menggunakan TextPainter
+        final textPainter = TextPainter(
+          text: TextSpan(text: text, style: style),
+          maxLines: 1,
+          textDirection: TextDirection.ltr,
+        )..layout(maxWidth: constraints.maxWidth);
+
+        final isOverflowing = textPainter.didExceedMaxLines;
+
+        // Widget teks dengan tooltip
+        Widget textWidget = Text(
+          text,
+          style: style,
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
+        );
+
+        // Jika teks terpotong, bungkus dengan SingleChildScrollView
+        if (isOverflowing) {
+          textWidget = SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Text(
+              text,
+              style: style,
+              maxLines: 1,
+            ),
+          );
+        }
+
+        // Bungkus dengan Tooltip untuk menampilkan teks lengkap
+        return Tooltip(
+          message: text, // Teks lengkap ditampilkan saat long press
+          child: textWidget,
+        );
+      },
     );
   }
 }
@@ -185,27 +226,46 @@ Future<Map<String, dynamic>?> showDataTernakDialog(
   String jenis,
   String berat,
   String status,
-  ) async {
-    TextEditingController noteController = TextEditingController();
-    ValueNotifier<String> jenisKelaminNotifier = ValueNotifier(jenis);
-    ValueNotifier<String> kondisiTernakNotifier = ValueNotifier(status);
-    ValueNotifier<String> beratNotifier = ValueNotifier(berat);
+) async {
+  TextEditingController noteController = TextEditingController();
+  ValueNotifier<String> jenisKelaminNotifier = ValueNotifier(jenis);
+  ValueNotifier<String> kondisiTernakNotifier = ValueNotifier(status);
+  ValueNotifier<String> beratNotifier = ValueNotifier(berat);
 
-  
+  // Fungsi untuk menampilkan overlay loading
+  void showLoadingOverlay(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // Mencegah menutup dialog dengan tap di luar
+      builder: (BuildContext context) {
+        return Stack(
+          children: [
+            ModalBarrier(
+              color: Colors.black.withOpacity(0.4), // Efek freeze semi-transparan
+              dismissible: false, // Tidak bisa ditutup dengan tap
+            ),
+            const Center(
+              child: TernakProBoxLoading(), // Loading indicator di tengah
+            ),
+          ],
+        );
+      },
+    );
+  }
 
-  showDialog(
+  final result = await showDialog<Map<String, dynamic>>(
     context: context,
     builder: (BuildContext context) {
       return AlertDialog(
         backgroundColor: AppColors.bgLight,
-        insetPadding: EdgeInsets.symmetric(horizontal: 20.0),
-        contentPadding: EdgeInsets.all(0),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20.0),
+        contentPadding: const EdgeInsets.all(0),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
         content: Container(
           width: double.maxFinite,
-          padding: EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -215,44 +275,68 @@ Future<Map<String, dynamic>?> showDataTernakDialog(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     IconButton(
-                      icon: Icon(Icons.close, color: Colors.black),
+                      icon: const Icon(Icons.close, color: Colors.black),
                       onPressed: () {
                         Navigator.of(context).pop();
                       },
                     ),
                   ],
                 ),
-                // Cow image section with reduced padding
+                // Cow image section
                 Center(
                   child: Image.asset(
                     'assets/data_ternak_assets/icons/ic_cow_hd.png',
                     height: 100,
                   ),
                 ),
-                // Ternak ID, Gender, and Age
+                // Ternak ID, Gender, and Weight
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    Text(
-                      tagId,
-                      style: AppTextStyle.extraBold.copyWith(fontSize: 24, color: Colors.black),
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      jenis,
-                      style: AppTextStyle.semiBold.copyWith(
-                        fontSize: 24,
-                        color: jenis == 'Jantan' ? AppColors.green01 : AppColors.purple,
+                    Expanded(
+                      child: Tooltip(
+                        message: tagId,
+                        child: AutoSizeText(
+                          tagId,
+                          style: AppTextStyle.extraBold.copyWith(fontSize: 24, color: Colors.black),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                          minFontSize: 16,
+                        ),
                       ),
                     ),
-                    SizedBox(width: 8),
-                    Text(
-                      "$berat Kg",
-                      style: AppTextStyle.extraBold.copyWith(fontSize: 24, color: Colors.black),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Tooltip(
+                        message: jenis,
+                        child: AutoSizeText(
+                          jenis,
+                          style: AppTextStyle.semiBold.copyWith(
+                            fontSize: 24,
+                            color: jenis == 'Jantan' ? AppColors.green01 : AppColors.purple,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                          minFontSize: 16,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Tooltip(
+                        message: "$berat Kg",
+                        child: AutoSizeText(
+                          "$berat Kg",
+                          style: AppTextStyle.extraBold.copyWith(fontSize: 24, color: Colors.black),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                          minFontSize: 16,
+                        ),
+                      ),
                     ),
                   ],
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 // Kondisi Section
                 CustomDropDownKelamin(
                   status: jenis,
@@ -260,7 +344,7 @@ Future<Map<String, dynamic>?> showDataTernakDialog(
                     jenisKelaminNotifier.value = value;
                   },
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 // Kondisi Section
                 CustomDropdownSehat(
                   status: status,
@@ -268,7 +352,7 @@ Future<Map<String, dynamic>?> showDataTernakDialog(
                     kondisiTernakNotifier.value = value;
                   },
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 // Berat Badan Section
                 CustomWeightField(
                   berat: berat,
@@ -276,16 +360,22 @@ Future<Map<String, dynamic>?> showDataTernakDialog(
                     beratNotifier.value = value;
                   },
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 // Catatan Section (Optional)
-                Text(
-                  'Catatan (Opsional)',
-                  style: AppTextStyle.semiBold.copyWith(
-                    fontSize: 14,
-                    color: AppColors.black100,
+                Tooltip(
+                  message: 'Catatan (Opsional)',
+                  child: AutoSizeText(
+                    'Catatan (Opsional)',
+                    style: AppTextStyle.semiBold.copyWith(
+                      fontSize: 14,
+                      color: AppColors.black100,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                    minFontSize: 12,
                   ),
                 ),
-                SizedBox(height: 3),
+                const SizedBox(height: 3),
                 TextField(
                   controller: noteController,
                   decoration: InputDecoration(
@@ -293,54 +383,61 @@ Future<Map<String, dynamic>?> showDataTernakDialog(
                     hintMaxLines: 4,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: AppColors.white06),
+                      borderSide: const BorderSide(color: AppColors.white06),
                     ),
-                    contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                   ),
                   minLines: 3,
                   maxLines: 3,
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 Center(
-                child: OnboardingButton(
-                  previous: false,
-                  text: "Simpan Perubahan",
-                  width: double.infinity,
-                  onClick: () async {
-                    try {
-                      // Panggil API untuk menyimpan perubahan
-                      await ApiService().updateDataTernak(
-                        userId: (await ApiService().loadCredentials())['user_id'],
-                        idTernak: idTernak,
-                        jenisKelamin: jenisKelaminNotifier.value,
-                        kondisiTernak: kondisiTernakNotifier.value,
-                        berat: beratNotifier.value,
-                        catatan: noteController.text.isEmpty ? null : noteController.text,
-                      );
+                  child: OnboardingButton(
+                    previous: false,
+                    text: "Simpan Perubahan",
+                    width: double.infinity,
+                    onClick: () async {
+                      // Tampilkan loading overlay
+                      showLoadingOverlay(context);
+                      try {
+                        // Panggil API untuk menyimpan perubahan
+                        await ApiService().updateDataTernak(
+                          userId: (await ApiService().loadCredentials())['user_id'],
+                          idTernak: idTernak,
+                          jenisKelamin: jenisKelaminNotifier.value,
+                          kondisiTernak: kondisiTernakNotifier.value,
+                          berat: beratNotifier.value,
+                          catatan: noteController.text.isEmpty ? null : noteController.text,
+                        );
 
-                      // Kembalikan data yang diperbarui untuk refresh
-                      final updatedData = {
-                        'id_ternak': idTernak,
-                        'tag_id': tagId,
-                        'jenis_kelamin': jenisKelaminNotifier.value,
-                        'berat': double.parse(beratNotifier.value),
-                        'kondisi_ternak': kondisiTernakNotifier.value,
-                        'catatan': noteController.text.isEmpty ? null : noteController.text,
-                      };
+                        // Kembalikan data yang diperbarui untuk refresh
+                        final updatedData = {
+                          'id_ternak': idTernak,
+                          'tag_id': tagId,
+                          'jenis_kelamin': jenisKelaminNotifier.value,
+                          'berat': double.parse(beratNotifier.value),
+                          'kondisi_ternak': kondisiTernakNotifier.value,
+                          'catatan': noteController.text.isEmpty ? null : noteController.text,
+                        };
 
-                      Navigator.of(context).pop(updatedData);
-                      Navigator.pushReplacementNamed(context, '/list-data-ternak-tugas');
-                    } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Gagal menyimpan perubahan: $e'),
-                          backgroundColor: AppColors.primaryRed,
-                        ),
-                      );
-                    }
-                  },
+                        // Tutup loading overlay
+                        Navigator.of(context).pop();
+                        // Tutup dialog dan kembalikan data
+                        Navigator.of(context).pop(updatedData);
+                        Navigator.pushReplacementNamed(context, '/list-data-ternak-tugas');
+                      } catch (e) {
+                        // Tutup loading overlay
+                        Navigator.of(context).pop();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Gagal menyimpan perubahan: $e'),
+                            backgroundColor: AppColors.primaryRed,
+                          ),
+                        );
+                      }
+                    },
+                  ),
                 ),
-              ),
               ],
             ),
           ),
@@ -348,5 +445,5 @@ Future<Map<String, dynamic>?> showDataTernakDialog(
       );
     },
   );
-  return null;
+  return result;
 }

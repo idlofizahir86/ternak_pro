@@ -63,6 +63,7 @@ class CustomTugasItem extends StatelessWidget {
                 waktuTugas: formattedWaktuTugas,
                 catatan: catatan,
                 tglTugas: tglTugas, // Added
+                isHome: false,
               );
 
               // Debugging output

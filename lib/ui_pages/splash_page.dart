@@ -103,17 +103,37 @@ class _SplashPageState extends State<SplashPage> {
     double logoWidth = screenWidth * 0.4; // 60% lebar layar untuk logo
 
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: AppColors.gradasi01, // Gradient background
-        ),
-        child: Center(
-          child: Image.asset(
-            "assets/ic_full.png",
-            key: const ValueKey('splash_logo'),
-            width: logoWidth,
+      body: Stack(
+        children: [
+          // Main content
+          Container(
+            decoration: BoxDecoration(
+              gradient: AppColors.gradasi01, // Gradient background
+            ),
+            child: Center(
+              child: Image.asset(
+                "assets/splash_logo.png",
+                key: const ValueKey('splash_logo'),
+                width: logoWidth,
+              ),
+            ),
           ),
-        ),
+          // Copyright text at the bottom
+          Positioned(
+            bottom: 16.0, // Distance from the bottom of the screen
+            left: 0,
+            right: 0,
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: Text(
+                'Copyright © 2025 All rights reserved.',
+                style: AppTextStyle.medium.copyWith(
+                  color: AppColors.white100,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

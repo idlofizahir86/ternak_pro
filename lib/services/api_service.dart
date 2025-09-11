@@ -1,14 +1,19 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ternak_pro/models/BannerItem.dart';
 import 'package:ternak_pro/models/TernakItem.dart';
 import 'package:ternak_pro/models/TipsItem.dart';
 import 'package:intl/intl.dart';
 
+import '../cubit/page_cubit.dart';
 import '../models/DailyTaskItem.dart';
 import '../models/KeuanganItem.dart';
 import '../models/user.dart';
+import '../shared/custom_loading.dart';
+import '../shared/theme.dart';
 
 class ApiService {
   // Base URL untuk API
@@ -306,7 +311,9 @@ class ApiService {
       }
     } else {
       // Tangani jika status code bukan 200 (misalnya 401 untuk unauthorized, 500 untuk server error)
-      throw Exception('Login gagal: ${response.statusCode} - ${response.body}');
+      final Map<String, dynamic> responseData = jsonDecode(response.body);
+      final String message = responseData['message'] ?? 'Pesan tidak tersedia';
+      throw Exception('Login gagal: $message');
     }
   }
 
@@ -321,7 +328,18 @@ class ApiService {
       await prefs.remove('name');
       await prefs.remove('no_telepon');
       await prefs.remove('role_id');
-    
+      await prefs.remove('_userDataKey');
+      await prefs.remove('_lastCacheTimeKey');
+      await prefs.remove('_tasksDataKey');
+      await prefs.remove('_tipsDataKey');
+      await prefs.remove('_locationLatKey');
+      await prefs.remove('_locationLngKey');
+      await prefs.remove('_locationAddressKey');
+      await prefs.remove('hasSeenBanner');
+      await prefs.remove('chatMessages');
+
+      context.read<PageCubit>().setPage(0);
+          
       // Mengarahkan pengguna ke halaman login setelah logout
       Navigator.pushReplacementNamed(context, '/login');
     } catch (e) {
@@ -1026,8 +1044,33 @@ Future<bool> storeTugas({
     required String waktuTugas,
     required String tglTugas,
     required int statusTugasId,
+    required bool isHome,
     String? catatan,
   }) async {
+    // Fungsi untuk menampilkan loading overlay
+    void showLoadingOverlay(BuildContext context) {
+      showDialog(
+        context: context,
+        barrierDismissible: false, // Mencegah menutup dialog dengan tap
+        builder: (BuildContext context) {
+          return Stack(
+            children: [
+              ModalBarrier(
+                color: Colors.black.withOpacity(0.4), // Efek freeze semi-transparan
+                dismissible: false, // Tidak bisa ditutup dengan tap
+              ),
+              const Center(
+                child: TernakProBoxLoading(), // Loading indicator di tengah
+              ),
+            ],
+          );
+        },
+      );
+    }
+
+    // Tampilkan loading overlay
+    showLoadingOverlay(context);
+
     try {
       final credentials = await loadCredentials();
       final userId = credentials['user_id'];
@@ -1043,24 +1086,37 @@ Future<bool> storeTugas({
           'status_tugas_id': statusTugasId,
           'catatan': catatan,
         }),
-      );
+      ).timeout(const Duration(seconds: 30)); // Tambahkan timeout
 
-      
+      // Tutup loading overlay
+      Navigator.of(context).pop();
 
       if (response.statusCode == 200) {
-        Navigator.pushNamed(
+        if (isHome == true) {
+          Navigator.pushNamed(context, '/main');
+        } else {
+          Navigator.pushNamed(
             context,
             '/list-data-ternak-tugas',
             arguments: {'initialIndex': 1},
           );
-        return; // Sukses, tidak perlu mengembalikan data kecuali diperlukan
+        }
+        return; // Sukses
       } else {
         throw Exception('Gagal memperbarui data tugas: ${response.statusCode}');
       }
     } catch (e) {
+      // Tutup loading overlay sebelum menampilkan error
+      Navigator.of(context).pop();
+      // Tampilkan pesan error
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error memperbarui data tugas: $e'),
+          backgroundColor: AppColors.primaryRed,
+        ),
+      );
       throw Exception('Error memperbarui data tugas: $e');
     }
-    
   }
 
   static Future<int> storeJenisTugas(String userId, String nama, String iconPath) async {
@@ -1215,4 +1271,39 @@ Future<bool> storeTugas({
     }
   }
 
+  //***************************************************Tips Endpoints*******************************************************
+  //***************************************************Tips Endpoints*******************************************************
+  //***************************************************Tips Endpoints*******************************************************
+  Future<List<BannerItem>> fetchBanners() async {
+    final response = await http.get(
+      Uri.parse(
+        "https://ternakpro.id/api/v1/active-banners",
+      ),
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      return (data['data'] as List)
+          .map((item) => BannerItem.fromJson(item))
+          .toList();
+    } else {
+      throw Exception('Failed to load banners');
+    }
+  }
+
+  Future<int> fetchBannersCount() async {
+    final response = await http.get(
+      Uri.parse(
+        "https://lime-gaur-237784.hostingersite.com/api/get_banners.php",
+      ),
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      final bannersList = data['data'] as List;
+      return bannersList.length; // Mengembalikan jumlah notifikasi
+    } else {
+      throw Exception('Failed to load notifications');
+    }
+  }
 }

@@ -266,238 +266,299 @@ class _CustomDropdownInputTernakState extends State<CustomDropdownInputTernak> {
   }
 
   void _showCustomModal(BuildContext context) {
-    final TextEditingController _namaController = TextEditingController();
-    String? selectedIcon; // Menyimpan ikon yang dipilih
+  final TextEditingController _namaController = TextEditingController();
+  String? selectedIcon; // Menyimpan ikon yang dipilih
 
-    // Daftar ikon yang tersedia dalam format assets
-    final List<String> iconNames = [
-      'ic_snack',
-      'ic_shield',
-      // Tambahkan ikon lainnya di sini
-    ];
+  // Daftar ikon yang tersedia dalam format assets
+  final List<String> iconNames = [
+    'ic_snack',
+    'ic_shield',
+    // Tambahkan ikon lainnya di sini
+  ];
 
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        // Get screen size for responsive calculations
-        final screenWidth = MediaQuery.of(context).size.width;
-        final screenHeight = MediaQuery.of(context).size.height;
-        // Calculate dynamic crossAxisCount based on screen width
-        final crossAxisCount = (screenWidth / 100).floor().clamp(3, 5);
-        // Calculate dynamic icon size to prevent overflow
-        final iconSize = (screenWidth / crossAxisCount) * 0.5;
+  final icons = [
+    {'path': 'assets/home_assets/icons/ic_snack.png', 'name': 'ic_snack'},
+    {'path': 'assets/home_assets/icons/ic_shield.png', 'name': 'ic_shield'},
+    {'path': 'assets/home_assets/icons/ic_shield.png', 'name': 'ic_shield'},
+    // Add more icons
+  ];
 
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      // Get screen size for responsive calculations
+      final screenWidth = MediaQuery.of(context).size.width;
+      final screenHeight = MediaQuery.of(context).size.height;
+      // Calculate dynamic crossAxisCount based on screen width
+      final crossAxisCount = (screenWidth / 100).floor().clamp(3, 5);
+
+      return Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        backgroundColor: AppColors.primaryWhite,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          // Make dialog height and width responsive
+          constraints: BoxConstraints(
+            maxHeight: screenHeight * 0.4,
+            minHeight: 300,
+            maxWidth: screenWidth * 0.45, // Ensure dialog fits within screen width
           ),
-          backgroundColor: AppColors.primaryWhite,
-          child: Container(
-            padding: EdgeInsets.all(16),
-            // Make dialog height responsive, max 80% of screen height
-            constraints: BoxConstraints(
-              maxHeight: screenHeight * 0.8,
-              minHeight: 300,
-            ),
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Judul dialog
-                  Text(
-                    'Tambah Jenis Tugas',
-                    style: AppTextStyle.semiBold.copyWith(
-                      fontSize: 18,
-                      color: AppColors.black100,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Judul dialog
+                Text(
+                  'Tambah Jenis Tugas',
+                  style: AppTextStyle.semiBold.copyWith(
+                    fontSize: 18,
+                    color: AppColors.black100,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Input nama jenis tugas
+                TextField(
+                  controller: _namaController,
+                  decoration: InputDecoration(
+                    labelText: 'Nama Jenis Tugas',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: const BorderSide(color: AppColors.green01),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  SizedBox(height: 16),
-                  // Input nama jenis tugas
-                  TextField(
-                    controller: _namaController,
-                    decoration: InputDecoration(
-                      labelText: 'Nama Jenis Tugas',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: AppColors.green01),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 16),
-                  // Grid untuk memilih ikon
-                  Container(
-                    // Ensure grid doesn't exceed dialog height
-                    constraints: BoxConstraints(
-                      maxWidth: 40,
-                    ),
-                    child: StatefulBuilder(
-                      builder: (context, setState) {
-                        return GridView.builder(
-                          shrinkWrap: true,
-                          physics: BouncingScrollPhysics(),
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: crossAxisCount,
-                            crossAxisSpacing: 10,
-                            mainAxisSpacing: 10,
-                            childAspectRatio: 1,
-                          ),
-                          itemCount: iconNames.length,
-                          itemBuilder: (context, index) {
-                            String iconName = iconNames[index];
-                            String iconPath = 'assets/home_assets/icons/$iconName.png';
-                            bool isSelected = selectedIcon == iconPath;
-
-                            return GestureDetector(
-                              onTap: () {
-                                HapticFeedback.lightImpact(); // Haptic feedback
-                                setState(() {
-                                  selectedIcon = iconPath;
-                                });
-                              },
-                              child: AnimatedContainer(
-                                duration: Duration(milliseconds: 200),
-                                transform: Matrix4.identity()
-                                  ..scale(isSelected ? 1.1 : 1.0),
-                                decoration: BoxDecoration(
-                                  color: isSelected
-                                      ? AppColors.green01.withOpacity(0.2)
-                                      : Colors.transparent,
-                                  border: Border.all(
-                                    color: isSelected ? AppColors.green01 : Colors.transparent,
-                                    width: 2,
-                                  ),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Stack(
-                                  alignment: Alignment.center,
-                                  children: [
-                                    Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Image.asset(
-                                          iconPath,
-                                          width: iconSize.clamp(30, 50),
-                                          height: iconSize.clamp(30, 50),
-                                          fit: BoxFit.cover,
-                                        ),
-                                        SizedBox(height: 4),
-                                        Text(
-                                          iconName
-                                              .replaceAll('ic_', '')
-                                              .replaceAll('_', ' ')
-                                              .toUpperCase(),
-                                          style: TextStyle(
-                                            fontSize: (iconSize * 0.25).clamp(10, 12),
-                                          ),
-                                          textAlign: TextAlign.center,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ],
-                                    ),
-                                    if (isSelected)
-                                      Positioned(
-                                        top: 0,
-                                        right: 0,
-                                        child: Icon(
-                                          Icons.check_circle,
-                                          color: AppColors.green01,
-                                          size: iconSize * 0.4,
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    ),
-                  ),
-                  SizedBox(height: 16),
-                  // Tombol Simpan dan Batal
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                        },
-                        child: Text(
-                          'Batal',
-                          style: AppTextStyle.medium.copyWith(color: AppColors.black100),
+                ),
+                const SizedBox(height: 16),
+                // Grid untuk memilih ikon
+                SizedBox(
+                  // Constrain GridView height to prevent overflow
+                  height: (120 * (icons.length / crossAxisCount).ceil()).toDouble(),
+                  child: StatefulBuilder(
+                    builder: (context, setState) {
+                      return GridView.builder(
+                        shrinkWrap: true, // Prevent GridView from expanding infinitely
+                        physics: const NeverScrollableScrollPhysics(), // Disable GridView scrolling
+                        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: screenWidth / crossAxisCount, // Adjust item width dynamically
+                          mainAxisSpacing: 6,
+                          crossAxisSpacing: 6,
+                          childAspectRatio: 1, // Square items
                         ),
-                      ),
-                      ElevatedButton(
-                        onPressed: () async {
-                          // Prevent double-tap with a simple debounce
-                          await Future.delayed(Duration(milliseconds: 300));
-                          final nama = _namaController.text.trim();
-                          if (nama.isNotEmpty && selectedIcon != null) {
-                            try {
-                              final credentials = await ApiService().loadCredentials();
-                              final userId = credentials['user_id'];
-                              final newTujuanId = await ApiService.storeJenisTugas(
-                                userId,
-                                nama,
-                                selectedIcon!,
-                              );
-
+                        itemCount: icons.length,
+                        itemBuilder: (context, index) {
+                          final icon = icons[index];
+                          return buildIconSelector(
+                            iconPath: icon['path']!,
+                            iconName: icon['name']!,
+                            isSelected: selectedIcon == icon['path'],
+                            onTap: () {
                               setState(() {
-                                widget.onChanged(newTujuanId.toString());
+                                selectedIcon = icon['path'];
                               });
+                            },
+                            maxIconSize: 50.0,
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Tombol Simpan dan Batal
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      child: Text(
+                        'Batal',
+                        style: AppTextStyle.medium.copyWith(color: AppColors.black100),
+                      ),
+                    ),
+                    ElevatedButton(
+                      onPressed: () async {
+                        // Prevent double-tap with a simple debounce
+                        await Future.delayed(const Duration(milliseconds: 300));
+                        final nama = _namaController.text.trim();
+                        if (nama.isNotEmpty && selectedIcon != null) {
+                          try {
+                            final credentials = await ApiService().loadCredentials();
+                            final userId = credentials['user_id'];
+                            final newTujuanId = await ApiService.storeJenisTugas(
+                              userId,
+                              nama,
+                              selectedIcon!,
+                            );
 
-                              Navigator.of(context).pop();
-                              
-                              // Tutup dialog opsi
-                              Navigator.pushReplacementNamed(context, '/tambah-data-tugas');
-                            } catch (e) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Gagal menambahkan jenis tugas: ${e.toString()}',
-                                  ),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                            }
-                          } else {
+                            setState(() {
+                              widget.onChanged(newTujuanId.toString());
+                            });
+
+                            Navigator.of(context).pop();
+                            
+                            // Tutup dialog opsi
+                            Navigator.pushReplacementNamed(context, '/tambah-data-tugas');
+                          } catch (e) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
-                                  'Harap isi nama jenis tugas dan pilih ikon',
+                                  'Gagal menambahkan jenis tugas: ${e.toString()}',
                                 ),
                                 backgroundColor: Colors.red,
                               ),
                             );
                           }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.green01,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: Text(
-                          'Simpan',
-                          style: AppTextStyle.medium.copyWith(
-                            color: AppColors.primaryWhite,
-                          ),
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text(
+                                'Harap isi nama jenis tugas dan pilih ikon',
+                              ),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.green01,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                    ],
-                  ),
-                ],
-              ),
+                      child: Text(
+                        'Simpan',
+                        style: AppTextStyle.medium.copyWith(
+                          color: AppColors.primaryWhite,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-        );
-      },
-    );
-  }
+        ),
+      );
+    },
+  );
+}
+
+  Widget buildIconSelector({
+  required String iconPath,
+  required String iconName,
+  required bool isSelected,
+  required VoidCallback onTap,
+  required double maxIconSize, // Pass maxIconSize to control scaling
+}) {
+  return LayoutBuilder(
+    builder: (context, constraints) {
+      // Calculate responsive sizes based on parent constraints
+      final double parentWidth = constraints.maxWidth * 0.4;
+
+      // Responsive icon size: 15% of parent width, clamped between 24 and maxIconSize
+      final double iconSize = (parentWidth * 0.8).clamp(24.0, maxIconSize);
+
+      // Responsive font size: 30% of iconSize, clamped between 8 and 10
+      final double fontSize = (iconSize * 0.3).clamp(8.0, 10.0);
+
+      // Ensure container doesn’t exceed parent bounds, reduced for compactness
+      final double containerSize = parentWidth.clamp(24.0, 48.0);
+
+      return GestureDetector(
+        onTap: () {
+          HapticFeedback.lightImpact();
+          onTap();
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          width: containerSize,
+          height: containerSize,
+          transform: Matrix4.identity()..scale(isSelected ? 1.05 : 1.0),
+          transformAlignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: isSelected
+                ? AppColors.green01.withOpacity(0.2)
+                : Colors.transparent,
+            border: Border.all(
+              color: isSelected ? AppColors.green01 : Colors.transparent,
+              width: 1.5, // Reduced border width for compactness
+            ),
+            borderRadius: BorderRadius.circular(6), // Slightly smaller radius
+          ),
+          child: ClipRect(
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: iconSize,
+                        maxHeight: iconSize,
+                      ),
+                      child: iconPath.startsWith('http')
+                      ? Image.network(
+                          iconPath,
+                          width: iconSize,
+                          height: iconSize,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) =>
+                              Icon(Icons.error, size: iconSize * 0.5),
+                        )
+                      : Image.asset(
+                          iconPath,
+                          width: iconSize,
+                          height: iconSize,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) =>
+                              Icon(Icons.error, size: iconSize * 0.5),
+                        ),
+                    ),
+                    const SizedBox(height: 2), // Reduced spacing
+                    SizedBox(
+                      width: containerSize * 0.85, // Slightly reduced width
+                      child: Text(
+                        iconName
+                            .replaceAll('ic_', '')
+                            .replaceAll('_', ' ')
+                            .toUpperCase(),
+                        style: TextStyle(
+                          fontSize: fontSize,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                      ),
+                    ),
+                  ],
+                ),
+                if (isSelected)
+                  Positioned(
+                    top: 2, // Adjusted for smaller container
+                    right: 2,
+                    child: Icon(
+                      Icons.check_circle,
+                      color: AppColors.green01,
+                      size: iconSize * 0.30, // Smaller checkmark
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
+  );
+}
 
 
 
@@ -1243,7 +1304,7 @@ class TambahDataTugasPageState extends State<TambahDataTugasPage> {
             // Catatan (Opsional)
             CustomInputTugasField(
               label: 'Catatan (Opsional)',
-              hintText: 'Write a message',
+              hintText: 'Tambahkan catatan jika diperlukan',
               controller: _catatanController,
               maxLines: 4,
               isCalendar: false,

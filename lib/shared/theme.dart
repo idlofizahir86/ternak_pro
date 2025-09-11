@@ -53,6 +53,8 @@ static const Color red600 = Color(0xFFDC2626);
   static const Color green01 = Color(0xFF0EBCB1);
   static const Color green0110 = Color(0x190EBCB1 ); // 10% opacity
 
+  static const Color blue10 = Color(0x1966A4FF ); // 10% opacity
+
   static const Color green02 = Color(0xFFC2ECEB);
   static const Color green03 = Color(0xFF02C789);
 

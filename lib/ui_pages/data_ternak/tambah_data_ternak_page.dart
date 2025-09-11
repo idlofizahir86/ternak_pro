@@ -123,9 +123,15 @@ class _CustomDropdownInputTernakState extends State<CustomDropdownInputTernak> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          widget.label,
-          style: AppTextStyle.semiBold.copyWith(fontSize: 14, color: AppColors.black100),
+        // Label dengan elipsis dan tooltip
+        Tooltip(
+          message: widget.label,
+          child: Text(
+            widget.label,
+            style: AppTextStyle.semiBold.copyWith(fontSize: 14, color: AppColors.black100),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
         ),
         const SizedBox(height: 3),
         GestureDetector(
@@ -139,16 +145,32 @@ class _CustomDropdownInputTernakState extends State<CustomDropdownInputTernak> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  widget.selectedValue.isEmpty ? widget.hintText : widget.options.firstWhere(
-                    (option) => option['id'].toString() == widget.selectedValue,
-                    orElse: () => {'nama': widget.hintText},
-                  )['nama'],
-                  style: AppTextStyle.medium.copyWith(
-                    fontSize: 14,
-                    color: widget.selectedValue.isEmpty ? AppColors.black01 : AppColors.black100,
+                // Teks dropdown dengan elipsis dan tooltip
+                Expanded(
+                  child: Tooltip(
+                    message: widget.selectedValue.isEmpty
+                        ? widget.hintText
+                        : widget.options.firstWhere(
+                            (option) => option['id'].toString() == widget.selectedValue,
+                            orElse: () => {'nama': widget.hintText},
+                          )['nama'],
+                    child: Text(
+                      widget.selectedValue.isEmpty
+                          ? widget.hintText
+                          : widget.options.firstWhere(
+                              (option) => option['id'].toString() == widget.selectedValue,
+                              orElse: () => {'nama': widget.hintText},
+                            )['nama'],
+                      style: AppTextStyle.medium.copyWith(
+                        fontSize: 14,
+                        color: widget.selectedValue.isEmpty ? AppColors.black01 : AppColors.black100,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
                   ),
                 ),
+                // Ikon dropdown (tetap di kanan)
                 Image.asset(
                   'assets/home_assets/icons/ic_dropdown.png',
                   width: 16,
@@ -548,11 +570,11 @@ class TambahDataTernakPageState extends State<TambahDataTernakPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: TernakProBoxLoading()),
-      );
-    }
+    // if (_isLoading) {
+    //   return const Scaffold(
+    //     body: Center(child: TernakProBoxLoading()),
+    //   );
+    // }
 
     if (_errorMessage != null) {
       return Scaffold(

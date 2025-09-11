@@ -239,7 +239,7 @@ class TambahDataKeuanganPageState extends State<TambahDataKeuanganPage> with Sin
                             ),
                             CustomInputKeuanganField(
                               label: 'Catatan (Opsional)',
-                              hintText: 'Write a message',
+                              hintText: 'Tambahkan catatan jika diperlukan',
                               controller: _catatanController,
                               maxLines: 4,
                             ),
@@ -282,7 +282,7 @@ class TambahDataKeuanganPageState extends State<TambahDataKeuanganPage> with Sin
                             ),
                             CustomInputKeuanganField(
                               label: 'Catatan (Opsional)',
-                              hintText: 'Write a message',
+                              hintText: 'Tambahkan catatan jika diperlukan',
                               controller: _catatanController,
                               maxLines: 4,
                             ),

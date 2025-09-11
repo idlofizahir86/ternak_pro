@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ternak_pro/shared/theme.dart';
+import '../../shared/custom_loading.dart';
 import '../../shared/widgets/register_app_textfield.dart';
 import '../../services/api_service.dart';
 
@@ -33,6 +34,8 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
   bool nameFocused = false;
   String? errorMessage;
   int selectedRoleId = 3;
+
+  bool isLoading = false;
 
   final emailRegex = RegExp(r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$");
   final noTeleponRegex = RegExp(r"^(?:\+62|62|0)8[1-9][0-9]{6,9}$");
@@ -104,6 +107,7 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
       passwordConfirmationError = false;
       nameError = false;
       errorMessage = null;
+      isLoading = true; // Mulai loading
 
       String email = emailController.text.trim();
       String noTelepon = noTeleponController.text.trim();
@@ -118,21 +122,25 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
       }
       if (!emailRegex.hasMatch(email)) {
         emailError = true;
+        isLoading = false;
         showError("Format email tidak valid!");
         return;
       }
       if (noTelepon.isNotEmpty && !noTeleponRegex.hasMatch(noTelepon)) {
         noTeleponError = true;
+        isLoading = false;
         showError("Format No Telepon tidak valid!");
         return;
       }
       if (password.length < 8) {
         passwordError = true;
+        isLoading = false;
         showError("Password minimal 8 karakter!");
         return;
       }
       if (password != passwordConfirmation) {
         passwordConfirmationError = true;
+        isLoading = false;
         showError("Konfirmasi password tidak cocok!");
         return;
       }
@@ -152,6 +160,7 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
       if (mounted) {
         showError("Selamat datang, ${user.name}! Registrasi berhasil.");
         Future.delayed(const Duration(seconds: 2), () {
+          isLoading = false;
           if (mounted) {
             Navigator.pushReplacementNamed(context, '/login');
           }
@@ -159,6 +168,7 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
       }
     } catch (e) {
       if (mounted) {
+        isLoading = false;
         showError(e.toString().replaceFirst('Exception: ', ''));
       }
     }
@@ -513,6 +523,7 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                           ),
                           onPressed: () {
                             // Tambahkan logika untuk login dengan Google jika diperlukan
+                            _showFeatureUserNotAvailableDialog(context);
                           },
                         ),
                       ),
@@ -598,8 +609,59 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                 ),
               ),
             ),
+
+            if (isLoading)
+                Positioned.fill(
+                  child: Container(
+                    color: Colors.white60, // Latar belakang semi-transparan
+                    child: const Center(
+                      child: TernakProBoxLoading(),
+                    ),
+                  ),
+                ),
         ],
       ),
     );
   }
+}
+
+void _showFeatureUserNotAvailableDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.0),
+        ),
+        title: const Text(
+          'Informasi',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+        content: const Text(
+          'Mohon maaf saat ini Registrasi dengan Google belum dapat digunakan, silakan google dengan email dan password.',
+          style: TextStyle(
+            fontSize: 16,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(); // Tutup dialog
+            },
+            child: const Text(
+              'OK',
+              style: TextStyle(
+                color: Colors.blue,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      );
+    },
+  );
 }

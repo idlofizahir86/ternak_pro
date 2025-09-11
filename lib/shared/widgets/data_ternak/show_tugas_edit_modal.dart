@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../../theme.dart';
 
-Future<void> showTugasEditModal(
+Future<Map<String, dynamic>?> showTugasEditModal(
   BuildContext context, {
   required String title,
   required int idTugas,
@@ -12,95 +12,18 @@ Future<void> showTugasEditModal(
   required String catatan,
   required String time, // format "HH:mm"
   required String iconPath,
-  required String tglTugas, // Added t重建
+  required String tglTugas,
   required void Function({
     required String status,
     required int statusId,
     required String time,
     required String catatan,
-    required String tglTugas, // Added
+    required String tglTugas,
   }) onSave,
 }) async {
-  await showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.black.withAlpha(89), // dim belakang
-    barrierColor: Colors.black.withAlpha(89),
-    builder: (_) => _TugasEditModal(
-      title: title,
-      status: status,
-      statusId: statusId,
-      catatan: catatan,
-      time: time,
-      iconPath: iconPath,
-      tglTugas: tglTugas, // Added
-      onSave: onSave,
-    ),
-  );
-}
-
-class _TugasEditModal extends StatefulWidget {
-  final String title;
-  final String status;
-  final int statusId;
-  final String catatan;
-  final String time;
-  final String iconPath;
-  final String tglTugas; // Added
-  final void Function({
-    required String status,
-    required int statusId,
-    required String time,
-    required String catatan,
-    required String tglTugas, // Added
-  }) onSave;
-
-  const _TugasEditModal({
-    required this.title,
-    required this.status,
-    required this.statusId,
-    required this.catatan,
-    required this.time,
-    required this.iconPath,
-    required this.tglTugas, // Added
-    required this.onSave,
-  });
-
-  @override
-  State<_TugasEditModal> createState() => _TugasEditModalState();
-}
-
-class _TugasEditModalState extends State<_TugasEditModal> {
-  late String _status;
-  late TextEditingController _timeC;
-  late TextEditingController _tglTugasC; // Added
-  final TextEditingController _catatanC = TextEditingController();
-
-  final Color _teal = const Color(0xFF00C4B4);
-  final Color _tealDark = const Color(0xFF089E96);
-  final Color _border = const Color(0xFF00C4B4);
-
-  @override
-  void initState() {
-    super.initState();
-    _status = widget.status;
-    _timeC = TextEditingController(text: widget.time);
-    _tglTugasC = TextEditingController(
-      text: _formatDisplayDate(widget.tglTugas), // Format for display
-    );
-    _catatanC.text = widget.catatan;
-  }
-
-  @override
-  void dispose() {
-    _timeC.dispose();
-    _tglTugasC.dispose(); // Added
-    _catatanC.dispose();
-    super.dispose();
-  }
-
+  
   // Format date for display (e.g., dd/MM/yyyy)
-  String _formatDisplayDate(String? date) {
+  String formatDisplayDate(String? date) {
     try {
       final parsedDate = DateFormat('yyyy-MM-dd').parse(date ?? '');
       return DateFormat('dd/MM/yyyy').format(parsedDate);
@@ -108,6 +31,18 @@ class _TugasEditModalState extends State<_TugasEditModal> {
       return DateFormat('dd/MM/yyyy').format(DateTime.now());
     }
   }
+
+  ValueNotifier<String> statusNotifier = ValueNotifier(status);
+  ValueNotifier<String> timeNotifier = ValueNotifier(time);
+  ValueNotifier<String> tglTugasNotifier = ValueNotifier(
+    formatDisplayDate(tglTugas),
+  );
+  TextEditingController catatanController = TextEditingController(text: catatan);
+
+  final Color teal = const Color(0xFF00C4B4);
+  final Color tealDark = const Color(0xFF089E96);
+  final Color border = const Color(0xFF00C4B4);
+
 
   // Format date for submission (e.g., yyyy-MM-dd)
   String _formatSubmissionDate(String? date) {
@@ -117,6 +52,39 @@ class _TugasEditModalState extends State<_TugasEditModal> {
     } catch (e) {
       return DateFormat('yyyy-MM-dd').format(DateTime.now());
     }
+  }
+  // Dialog option item
+  Widget _buildDialogOption(String value, ValueNotifier<String> statusNotifier) {
+    return GestureDetector(
+      onTap: () {
+        statusNotifier.value = value;
+        Navigator.pop(context);
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+        child: Row(
+          children: [
+            Image.asset(
+              value == 'Sudah'
+                  ? 'assets/home_assets/icons/ic_check_green.png'
+                  : (value == 'Tertunda'
+                      ? 'assets/home_assets/icons/ic_check_yellow.png'
+                      : 'assets/home_assets/icons/ic_check_yellow.png'),
+              width: 16,
+              height: 16,
+            ),
+            const SizedBox(width: 10),
+            Text(
+              value,
+              style: AppTextStyle.medium.copyWith(
+                fontSize: 16,
+                color: AppColors.blackText,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   // Function to show the custom dropdown dialog
@@ -133,9 +101,9 @@ class _TugasEditModalState extends State<_TugasEditModal> {
             height: 150,
             child: Column(
               children: <Widget>[
-                _buildDialogOption('Tertunda'),
-                _buildDialogOption('Sudah'),
-                _buildDialogOption('Belum'),
+                _buildDialogOption('Tertunda', statusNotifier),
+                _buildDialogOption('Sudah', statusNotifier),
+                _buildDialogOption('Belum', statusNotifier),
               ],
             ),
           ),
@@ -144,41 +112,7 @@ class _TugasEditModalState extends State<_TugasEditModal> {
     );
   }
 
-  // Dialog option item
-  Widget _buildDialogOption(String value) {
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _status = value; // Update the selected value
-        });
-        Navigator.pop(context); // Close the dialog
-      },
-      child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-        child: Row(
-          children: [
-            Image.asset(
-              value == 'Sudah'
-                  ? 'assets/home_assets/icons/ic_check_green.png'
-                  : (value == 'Tertunda'
-                      ? 'assets/home_assets/icons/ic_check_yellow.png'
-                      : 'assets/home_assets/icons/ic_check_yellow.png'),
-              width: 16,
-              height: 16,
-            ),
-            SizedBox(width: 10),
-            Text(
-              value,
-              style: AppTextStyle.medium.copyWith(
-                fontSize: 16,
-                color: AppColors.blackText,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  
 
   InputDecoration _pillInput({Widget? prefixIcon, Widget? suffixIcon}) {
     return InputDecoration(
@@ -188,20 +122,20 @@ class _TugasEditModalState extends State<_TugasEditModal> {
       suffixIcon: suffixIcon,
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: _border, width: 1.6),
+        borderSide: BorderSide(color: border, width: 1.6),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: _teal, width: 2),
+        borderSide: BorderSide(color: teal, width: 2),
       ),
     );
   }
 
-  Future<void> _pickTime() async {
+  Future<void> _pickTime(BuildContext context) async {
     final now = TimeOfDay.now();
     final init = () {
       try {
-        final parts = _timeC.text.split(':');
+        final parts = timeNotifier.value.split(':');
         return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
       } catch (_) {
         return now;
@@ -210,16 +144,15 @@ class _TugasEditModalState extends State<_TugasEditModal> {
     final picked = await showTimePicker(context: context, initialTime: init);
     if (picked != null) {
       final dt = DateTime(0, 1, 1, picked.hour, picked.minute);
-      _timeC.text = DateFormat('HH:mm').format(dt);
-      setState(() {});
+      timeNotifier.value = DateFormat('HH:mm').format(dt);
     }
   }
 
-  Future<void> _pickDate() async {
+  Future<void> _pickDate(BuildContext context) async {
     final now = DateTime.now();
     final initialDate = () {
       try {
-        return DateFormat('yyyy-MM-dd').parse(widget.tglTugas);
+        return DateFormat('yyyy-MM-dd').parse(tglTugas);
       } catch (_) {
         return now;
       }
@@ -231,230 +164,267 @@ class _TugasEditModalState extends State<_TugasEditModal> {
       lastDate: DateTime(2100),
     );
     if (picked != null) {
-      _tglTugasC.text = DateFormat('dd/MM/yyyy').format(picked);
-      setState(() {});
+      tglTugasNotifier.value = DateFormat('dd/MM/yyyy').format(picked);
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (context, c) {
-      final w = MediaQuery.of(context).size.width;
-      final scale = (w.clamp(320, 480)) / 360;
-
-      return SingleChildScrollView(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-          top: 60,
-          left: 16,
-          right: 16,
+  await showDialog(
+    context: context,
+    barrierColor: Colors.black.withAlpha(89),
+    builder: (BuildContext context) {
+      return AlertDialog(
+        backgroundColor: AppColors.bgLight,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20.0),
+        contentPadding: const EdgeInsets.all(0),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
         ),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 520),
-            child: Material(
-              color: Colors.white,
-              elevation: 0,
-              borderRadius: BorderRadius.circular(28),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(28),
-                  border: Border.all(color: _border, width: 1.4),
-                  boxShadow: const [
-                    BoxShadow(
-                        color: Color(0x14000000),
-                        blurRadius: 18,
-                        offset: Offset(0, 8)),
+        content: Container(
+          width: double.maxFinite,
+          padding: const EdgeInsets.all(16),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Tombol close
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.black),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                    ),
                   ],
                 ),
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(22 * scale, 22 * scale, 22 * scale,
-                      22 * scale),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Icon header
-                      Container(
-                        width: 72 * scale,
-                        height: 72 * scale,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEAF7F7),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Center(
-                          child: Image.asset(widget.iconPath,
-                              width: 40 * scale,
-                              height: 40 * scale,
-                              fit: BoxFit.contain),
-                        ),
-                      ),
-                      SizedBox(height: 14 * scale),
-                      Text(
-                        widget.title,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            fontSize: 22 * scale,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.black100),
-                      ),
-                      SizedBox(height: 18 * scale),
-
-                      // Label: Status Perawatan
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text('Status Perawatan',
-                            style: TextStyle(
-                                fontSize: 14 * scale,
-                                fontWeight: FontWeight.w600)),
-                      ),
-                      SizedBox(height: 8 * scale),
-
-                      // Status perawatan (custom dialog)
-                      GestureDetector(
-                        onTap: () => _showCustomDialog(context),
-                        child: Container(
-                          padding: EdgeInsets.symmetric(
-                              vertical: 14 * scale, horizontal: 14 * scale),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12 * scale),
-                            border: Border.all(color: _teal),
+                // Icon header
+                Center(
+                  child: Container(
+                    width: 72,
+                    height: 72,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEAF7F7),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Center(
+                      child: iconPath.startsWith('http')
+                        ? Image.network(
+                            iconPath,
+                            width: 40,
+                            height: 40,
+                            fit: BoxFit.contain,
+                          )
+                        : Image.asset(
+                            iconPath,
+                            width: 40,
+                            height: 40,
+                            fit: BoxFit.contain,
                           ),
-                          child: Row(
-                            children: [
-                              Image.asset(
-                                _status == 'Sudah'
-                                    ? 'assets/home_assets/icons/ic_check_green.png'
-                                    : (_status == 'Tertunda'
-                                        ? 'assets/home_assets/icons/ic_check_yellow.png'
-                                        : 'assets/home_assets/icons/ic_check_yellow.png'),
-                                width: 16 * scale,
-                                height: 16 * scale,
-                              ),
-                              SizedBox(width: 8),
-                              Text(_status,
-                                  style: TextStyle(
-                                      fontSize: 16 * scale,
-                                      color: AppColors.black100)),
-                              const Spacer(),
-                              Icon(Icons.arrow_drop_down, size: 24 * scale),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      SizedBox(height: 18 * scale),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text('Tanggal Tugas',
-                            style: TextStyle(
-                                fontSize: 14 * scale,
-                                fontWeight: FontWeight.w600)),
-                      ),
-                      SizedBox(height: 8 * scale),
-
-                      // Input: Tanggal Tugas
-                      TextFormField(
-                        controller: _tglTugasC,
-                        readOnly: true,
-                        onTap: _pickDate,
-                        decoration: _pillInput(
-                          suffixIcon: IconButton(
-                            icon: const Icon(Icons.calendar_today),
-                            onPressed: _pickDate,
-                          ),
-                        ),
-                        style: TextStyle(
-                            fontSize: 16 * scale, fontWeight: FontWeight.w500),
-                      ),
-
-                      SizedBox(height: 18 * scale),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text('Waktu',
-                            style: TextStyle(
-                                fontSize: 14 * scale,
-                                fontWeight: FontWeight.w600)),
-                      ),
-                      SizedBox(height: 8 * scale),
-
-                      // Input: Waktu
-                      TextFormField(
-                        controller: _timeC,
-                        readOnly: true,
-                        onTap: _pickTime,
-                        decoration: _pillInput(
-                          suffixIcon: IconButton(
-                            icon: const Icon(Icons.schedule),
-                            onPressed: _pickTime,
-                          ),
-                        ),
-                        style: TextStyle(
-                            fontSize: 16 * scale, fontWeight: FontWeight.w500),
-                      ),
-
-                      SizedBox(height: 18 * scale),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text('Catatan (Opsional)',
-                            style: TextStyle(
-                                fontSize: 14 * scale,
-                                fontWeight: FontWeight.w600)),
-                      ),
-                      SizedBox(height: 8 * scale),
-
-                      // Catatan
-                      TextField(
-                        controller: _catatanC,
-                        maxLines: 4,
-                        minLines: 3,
-                        decoration: InputDecoration(
-                          hintText: 'Write a message',
-                          contentPadding: const EdgeInsets.all(14),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFFBDBDBD)),
-                          ),
-                        ),
-                      ),
-
-                      SizedBox(height: 22 * scale),
-
-                      // Tombol simpan gradien
-                      SizedBox(
-                        width: double.infinity,
-                        height: (50 * scale).clamp(46, 56),
-                        child: _GradientButton(
-                          text: 'Simpan Perubahan',
-                          start: _teal,
-                          end: _tealDark,
-                          radius: 16,
-                          onTap: () {
-                            widget.onSave(
-                              status: _status,
-                              statusId: _status == 'Sudah' ? 1 : (_status == 'Tertunda' ? 2 : 3), // Map status string to ID
-                              time: _timeC.text,
-                              catatan: _catatanC.text.trim(),
-                              tglTugas: _formatSubmissionDate(_tglTugasC.text), // Added
-                            );
-                            Navigator.pop(context);
-                          },
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
+                const SizedBox(height: 14),
+                Center(
+                  child: Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.black100,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                // Label: Status Perawatan
+                Text(
+                  'Status Perawatan',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // Status perawatan (custom dialog)
+                ValueListenableBuilder<String>(
+                  valueListenable: statusNotifier,
+                  builder: (context, status, _) {
+                    return GestureDetector(
+                      onTap: () => _showCustomDialog(context),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 14,
+                          horizontal: 14,
+                        ),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: teal),
+                        ),
+                        child: Row(
+                          children: [
+                            Image.asset(
+                              status == 'Sudah'
+                                  ? 'assets/home_assets/icons/ic_check_green.png'
+                                  : (status == 'Tertunda'
+                                      ? 'assets/home_assets/icons/ic_check_yellow.png'
+                                      : 'assets/home_assets/icons/ic_check_yellow.png'),
+                              width: 16,
+                              height: 16,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              status,
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: AppColors.black100,
+                              ),
+                            ),
+                            const Spacer(),
+                            const Icon(Icons.arrow_drop_down, size: 24),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 18),
+                // Label: Tanggal Tugas
+                Text(
+                  'Tanggal Tugas',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // Input: Tanggal Tugas
+                ValueListenableBuilder<String>(
+                  valueListenable: tglTugasNotifier,
+                  builder: (context, tglTugas, _) {
+                    return TextFormField(
+                      controller: TextEditingController(text: tglTugas),
+                      readOnly: true,
+                      onTap: () => _pickDate(context),
+                      decoration: _pillInput(
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.calendar_today),
+                          onPressed: () => _pickDate(context),
+                        ),
+                      ),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 18),
+                // Label: Waktu
+                Text(
+                  'Waktu',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // Input: Waktu
+                ValueListenableBuilder<String>(
+                  valueListenable: timeNotifier,
+                  builder: (context, time, _) {
+                    return TextFormField(
+                      controller: TextEditingController(text: time),
+                      readOnly: true,
+                      onTap: () => _pickTime(context),
+                      decoration: _pillInput(
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.schedule),
+                          onPressed: () => _pickTime(context),
+                        ),
+                      ),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 18),
+                // Label: Catatan (Opsional)
+                Text(
+                  'Catatan (Opsional)',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // Catatan
+                TextField(
+                  controller: catatanController,
+                  maxLines: 4,
+                  minLines: 3,
+                  decoration: InputDecoration(
+                    hintText: 'Tambahkan catatan jika diperlukan',
+                    contentPadding: EdgeInsets.all(14),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Color(0xFFE0E0E0)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Color(0xFFBDBDBD)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 22),
+                // Tombol simpan gradien
+                Center(
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: _GradientButton(
+                      text: 'Simpan Perubahan',
+                      start: teal,
+                      end: tealDark,
+                      radius: 16,
+                      onTap: () {
+                        onSave(
+                          status: statusNotifier.value,
+                          statusId: statusNotifier.value == 'Belum'
+                              ? 1
+                              : (statusNotifier.value == 'Tertunda' ? 2 : 3),
+                          time: timeNotifier.value,
+                          catatan: catatanController.text.trim(),
+                          tglTugas: _formatSubmissionDate(tglTugasNotifier.value),
+                        );
+                        final updatedData = {
+                          'id_tugas': idTugas,
+                          'title': title,
+                          'status': statusNotifier.value,
+                          'status_id': statusNotifier.value == 'Belum'
+                              ? 1
+                              : (statusNotifier.value == 'Tertunda' ? 2 : 3),
+                          'catatan': catatanController.text.trim(),
+                          'time': timeNotifier.value,
+                          'icon_path': iconPath,
+                          'tgl_tugas': _formatSubmissionDate(tglTugasNotifier.value),
+                        };
+                        Navigator.of(context).pop(updatedData);
+                      },
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
       );
-    });
-  }
+    },
+  );
+
+  return null;
 }
 
 class _GradientButton extends StatelessWidget {
@@ -462,6 +432,7 @@ class _GradientButton extends StatelessWidget {
   final Color start, end;
   final double radius;
   final VoidCallback onTap;
+
   const _GradientButton({
     required this.text,
     required this.start,
@@ -480,18 +451,24 @@ class _GradientButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(radius),
           boxShadow: const [
             BoxShadow(
-                color: Color(0x22000000), blurRadius: 12, offset: Offset(0, 4)),
+              color: Color(0x22000000),
+              blurRadius: 12,
+              offset: Offset(0, 4),
+            ),
           ],
         ),
         child: InkWell(
           borderRadius: BorderRadius.circular(radius),
           onTap: onTap,
           child: Center(
-            child: Text(text,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16)),
+            child: Text(
+              text,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+              ),
+            ),
           ),
         ),
       ),

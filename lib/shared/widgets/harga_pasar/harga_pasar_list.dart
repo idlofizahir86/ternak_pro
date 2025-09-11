@@ -75,10 +75,15 @@ class CustomHargaPasarItem extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Image.asset(
-                      imageUrl,
-                      width: cardWidth * 0.5,
-                    ),
+                    imageUrl.startsWith('http')
+                    ? Image.network(
+                        imageUrl,
+                        width: cardWidth * 0.5,
+                      )
+                    : Image.asset(
+                        imageUrl,
+                        width: cardWidth * 0.5,
+                      ),
                   ],
                 ),
               ),
@@ -116,11 +121,17 @@ class CustomHargaPasarItem extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Image.asset(
-                      statusIcon,
-                      width: 12.0,
-                      height: 12.0,
-                    ),
+                    statusIcon.startsWith('http')
+                    ? Image.network(
+                        statusIcon,
+                        width: 12.0,
+                        height: 12.0,
+                      )
+                    : Image.asset(
+                        statusIcon,
+                        width: 12.0,
+                        height: 12.0,
+                      ),
                     SizedBox(width: 4.0),
                     Text(
                       'Harga $kondisi',

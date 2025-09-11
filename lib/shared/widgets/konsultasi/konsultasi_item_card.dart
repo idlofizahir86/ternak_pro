@@ -50,11 +50,17 @@ class KonsultasiItemCard extends StatelessWidget {
                   Padding(
                     padding: EdgeInsets.only(
                         left: paddingBetween, right: paddingBetween, top: 16, bottom: 16),
-                    child: Image.asset(
-                      imagePath,
-                      width: imageWidth,
-                      fit: BoxFit.scaleDown,
-                    ),
+                    child: imagePath.startsWith('http')
+                    ? Image.network(
+                        imagePath,
+                        width: imageWidth,
+                        fit: BoxFit.scaleDown,
+                      )
+                    : Image.asset(
+                        imagePath,
+                        width: imageWidth,
+                        fit: BoxFit.scaleDown,
+                      ),
                   ),
                   
                   // Text + Button
