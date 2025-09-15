@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:ternak_pro/ui_pages/asisten_virtual/asisten_virtual_page.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../cubit/konsultasi_page_cubit.dart';
 import '../../cubit/page_cubit.dart';
@@ -351,53 +352,79 @@ class _VoiceToTextModalState extends State<_VoiceToTextModal> with SingleTickerP
   }
 
   void _startListening() async {
-    if (_speechAvailable && _speech != null && !_isRecording) {
-      setState(() {
-        _isRecording = true;
-        _text = "Mendengarkan...";
-      });
-      try {
-        await _speech!.listen(
-          onResult: (result) {
-            if (result.recognizedWords.isNotEmpty) {
-              setState(() {
-                _text = result.recognizedWords;
-              });
-            }
-          },
-          localeId: "id_ID",
-        );
-        _timeoutTimer = Timer(const Duration(seconds: 10), () {
-          if (_isRecording) {
-            _speech?.stop();
+  if (_speechAvailable && _speech != null && !_isRecording) {
+    setState(() {
+      _isRecording = true;
+      _text = "Mendengarkan...";
+    });
+    try {
+      await _speech!.listen(
+        onResult: (result) {
+          print('Speech result: ${result.recognizedWords}, final: ${result.finalResult}'); // Debug log
+          setState(() {
+            _text = result.recognizedWords.isNotEmpty ? result.recognizedWords : "Mendengarkan...";
+          });
+          if (result.finalResult && result.recognizedWords.isNotEmpty) {
+            _isRecording = false;
+            _navigateToAsistenVirtual(); // Auto-navigasi saat final
           }
-        });
-      } catch (e) {
-        setState(() {
-          _errorMsg = "Gagal mendengarkan: $e";
-          _isRecording = false;
-        });
-      }
+        },
+        localeId: "id_ID",
+        listenMode: stt.ListenMode.dictation,
+      );
+      _timeoutTimer = Timer(const Duration(seconds: 10), () {
+        if (_isRecording) {
+          print('Timeout triggered, current text: $_text'); // Debug
+          _speech?.stop();
+          _navigateToAsistenVirtual();
+        }
+      });
+    } catch (e) {
+      print('Error listening: $e');
+      setState(() {
+        _errorMsg = "Gagal mendengarkan: $e";
+        _isRecording = false;
+      });
+      _navigateToAsistenVirtual();
     }
   }
+}
 
   void _navigateToAsistenVirtual() {
     if (_text != "Mendengarkan..." && _text.trim().isNotEmpty) {
-      Navigator.pushNamed(
-        context,
-        '/asisten-virtual',
-        arguments: {
-          'initialText': _text,
-          'externalInput': true,
-        },
-      ).then((value) {
+      // Hentikan speech recognition
+      _speech?.stop();
+      _timeoutTimer?.cancel();
+      
+      // Navigasi ke AsistenVirtualPage dengan teks
+      Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AsistenVirtualPage(
+          initialText: _text.trim(),
+          externalInput: true,
+        ),
+      ),
+    ).then((value) {
+        // Opsional: Reset state setelah kembali
+        setState(() {
+          _text = "Mendengarkan...";
+          _isRecording = false;
+        });
+        Navigator.of(context).pop();
       }).catchError((e) {
+        print('Error navigating: $e');
+        Navigator.of(context).pop();
       });
+      
+      // Langsung tutup modal
+      Navigator.of(context).pop();
     } else {
-      Navigator.pushNamed(
-        context,
-        '/main',
-      ); // Tutup modal jika teks tidak valid
+      // Jika teks tidak valid, tutup modal dan kembali ke main
+      _speech?.stop();
+      _timeoutTimer?.cancel();
+      Navigator.of(context).pop();
+      Navigator.pushNamed(context, '/main');
     }
   }
 

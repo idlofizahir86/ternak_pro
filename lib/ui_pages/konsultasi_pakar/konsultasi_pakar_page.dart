@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
-import '../../models/KonsultasiPakanItem.dart';
+import '../../models/KonsultasiPakarItem.dart';
 import '../../services/api_service.dart';
 import '../../shared/custom_loading.dart';
 import '../../shared/theme.dart';
 import '../../shared/widgets/custom_image_view.dart';
-import '../../shared/widgets/konsultasi_pakan/konsultasi_pakan_list.dart' hide KonsultasiPakanItem;
-import '../../shared/widgets/supplier_pakan.dart/supplier_pakan_list.dart' hide SupplierPakanItem;
+import '../../shared/widgets/konsultasi_pakar/konsultasi_pakar_list.dart' hide KonsultasiPakarItem;
 
-class KonsultasiPakanPage extends StatefulWidget {
-  const KonsultasiPakanPage({super.key});
+class KonsultasiPakarPage extends StatefulWidget {
+  const KonsultasiPakarPage({super.key});
 
   @override
-  KonsultasiPakanPageState createState() => KonsultasiPakanPageState();
+  KonsultasiPakarPageState createState() => KonsultasiPakarPageState();
 }
 
-class KonsultasiPakanPageState extends State<KonsultasiPakanPage> {
+class KonsultasiPakarPageState extends State<KonsultasiPakarPage> {
   bool _isSearchSectionVisible = true;
 
   // ---- state untuk search & filter ----
@@ -29,9 +28,9 @@ class KonsultasiPakanPageState extends State<KonsultasiPakanPage> {
     _kategoriFuture = _apiService.getAllKategoriKonsultasi();
   }
 
-  List<KonsultasiPakanItem> _filterKonsultasiPakan(List<KonsultasiPakanItem> KonsultasiPakan) {
-    if (selectedKategoriId == '0') return KonsultasiPakan;
-    return KonsultasiPakan
+  List<KonsultasiPakarItem> _filterKonsultasiPakar(List<KonsultasiPakarItem> KonsultasiPakar) {
+    if (selectedKategoriId == '1') return KonsultasiPakar;
+    return KonsultasiPakar
         .where((item) => item.kategori.contains(int.parse(selectedKategoriId)))
         .toList();
   }
@@ -101,7 +100,7 @@ class KonsultasiPakanPageState extends State<KonsultasiPakanPage> {
               ),
           const SizedBox(height: 8),
             Expanded(
-              child: KonsultasiPakanList(
+              child: KonsultasiPakarList(
                 searchQuery: _query,
               ),
             ),
@@ -152,7 +151,7 @@ Widget _buildHeaderSection(BuildContext context) {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Konsultasi Pakan',
+                    'Konsultasi Pakar',
                     style: AppTextStyle.medium.copyWith(fontSize: 20, color: AppColors.white100),
                   ),
                 ],

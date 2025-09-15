@@ -108,49 +108,73 @@ class _HomePageState extends State<HomePage> {
       final banner = banners[currentIndex];
 
       showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) {
-          return Dialog(
-            insetPadding: const EdgeInsets.symmetric(
-              horizontal: 24,
-              vertical: 40,
-            ),
-            backgroundColor: Colors.transparent,
-            child: Stack(
-              children: [
-                // Konten banner dengan border radius
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(18),
-                  child: Image.network(
-                    banner.bannerUrl,
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                  ),
-                ),
-
-                // Tombol close di pojok kanan atas
-                Positioned(
-                  top: 12,
-                  right: 12,
-                  child: GestureDetector(
-                    onTap: () {
-                      Navigator.of(context).pop();
-                      currentIndex++;
-                      showNextBanner();
-                    },
-                    child: const CircleAvatar(
-                      radius: 18,
-                      backgroundColor: Colors.black54,
-                      child: Icon(Icons.close, color: Colors.white, size: 20),
+  context: context,
+  barrierDismissible: false,
+  builder: (context) {
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(
+        horizontal: 24,
+        vertical: 40,
+      ),
+      backgroundColor: Colors.transparent,
+      child: Stack(
+        children: [
+          // Konten banner dengan border radius
+          ClipRRect(
+            borderRadius: BorderRadius.circular(18),
+            child: Image.network(
+              banner.bannerUrl,
+              fit: BoxFit.cover,
+              width: double.infinity,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) {
+                  return child; // Image is loaded
+                } else {
+                  return Center(
+                    child: CircularProgressIndicator(
+                      value: loadingProgress.expectedTotalBytes != null
+                          ? loadingProgress.cumulativeBytesLoaded /
+                              (loadingProgress.expectedTotalBytes ?? 1)
+                          : null,
                     ),
-                  ),
-                ),
-              ],
+                  ); // Show a loading spinner while the image is loading
+                }
+              },
+              errorBuilder: (context, error, stackTrace) {
+                return Center(
+                  child: Icon(
+                    Icons.error,
+                    color: Colors.red,
+                    size: 50,
+                  ), // Show error icon if the image failed to load
+                );
+              },
             ),
-          );
-        },
-      );
+          ),
+
+          // Tombol close di pojok kanan atas
+          Positioned(
+            top: 12,
+            right: 12,
+            child: GestureDetector(
+              onTap: () {
+                Navigator.of(context).pop();
+                currentIndex++;
+                showNextBanner();
+              },
+              child: const CircleAvatar(
+                radius: 18,
+                backgroundColor: Colors.black54,
+                child: Icon(Icons.close, color: Colors.white, size: 20),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  },
+);
+
     }
 
     showNextBanner();

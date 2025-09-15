@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:ternak_pro/shared/theme.dart';
 
-import '../../../ui_pages/konsultasi_pakan/konsultasi_pakan_detail_page.dart'; // Tambahkan import ini
+import '../../../models/KonsultasiPakarItem.dart' as KonsultasiPakarItemModel;
 
-class KonsultasiPakanItem extends StatelessWidget {
+import '../../../services/api_service.dart';
+import '../../../ui_pages/konsultasi_pakar/konsultasi_pakar_detail_page.dart';
+
+class KonsultasiPakarItem extends StatelessWidget {
   final String imageUrl;
   final String nama;
   final String spealis; // ejaan mengikuti field map
@@ -14,7 +17,7 @@ class KonsultasiPakanItem extends StatelessWidget {
   final int durasi; // menit / jam sesuai datamu
   final VoidCallback? onTap;
 
-  const KonsultasiPakanItem({
+  const KonsultasiPakarItem({
     super.key,
     required this.imageUrl,
     required this.nama,
@@ -54,7 +57,7 @@ class KonsultasiPakanItem extends StatelessWidget {
                 CircleAvatar(
                   radius: 37.5, // diameter = 75
                   backgroundColor: AppColors.green01,
-                  backgroundImage: AssetImage(imageUrl),
+                  backgroundImage: NetworkImage(imageUrl),
                 ),
                 SizedBox(width: 10),
                 Column(
@@ -129,101 +132,76 @@ class KonsultasiPakanItem extends StatelessWidget {
   }
 }
 
-class KonsultasiPakanList extends StatelessWidget {
+class KonsultasiPakarList extends StatefulWidget {
   final String searchQuery;
 
-  KonsultasiPakanList({
+  const KonsultasiPakarList({
     super.key,
     this.searchQuery = '',
   });
 
-  final List<Map<String, dynamic>> items = [
-  {
-      'id': 1,
-      'image_url': 'assets/supplier_pakan_assets/images/sekam.png',
-      'nama': 'Dr. Dopi',
-      'kategori': [1, 2],
-      'harga': 130850,
-      'durasi': 3,
-      'no_tlp': 6281234567890,
-      'spealis': 'Pakan Ternak Ruminansia',
-      'lokasi_praktik': 'Jl. Raya Pakan No. 123, Jakarta',
-      'pukul_mulai': '08:00',
-      'pukul_akhir': '12:00',
-      'pendidikan': 'S1 Kedokteran Hewan - IPB;S2 Nutrisi Ternak - UGM;Pelatihan Formulasi Pakan Internasional',
-      'pengalaman': '5 tahun pengalaman konsultasi pakan sapi dan kambing',
-      'fokus_konsultasi': 'Formulasi pakan dan nutrisi',
-      'created_at': DateTime.now().toString(),
-      'updated_at': DateTime.now().toString(),
-    },
-    {
-      'id': 2,
-      'image_url': 'assets/konsultasi_pakan_assets/images/team.png',
-      'nama': 'Dr. Rina',
-      'kategori': [1, 3],
-      'harga': 150000,
-      'durasi': 2,
-      'no_tlp': 6285678901234,
-      'spealis': 'Unggas & Perunggasan',
-      'lokasi_praktik': 'Jl. Ternak Ayam No. 45, Bandung',
-      'pukul_mulai': '09:30',
-      'pukul_akhir': '14:00',
-      'pendidikan': 'S1 Peternakan - UNPAD;S2 Nutrisi Unggas - IPB;Workshop Manajemen Broiler',
-      'pengalaman': '8 tahun pengalaman di bidang unggas',
-      'fokus_konsultasi': 'Manajemen pakan ayam broiler & layer',
-      'created_at': DateTime.now().toString(),
-      'updated_at': DateTime.now().toString(),
-    },
-    {
-      'id': 3,
-      'image_url': 'assets/konsultasi_pakan_assets/images/team.png',
-      'nama': 'Dr. Budi',
-      'kategori': [1, 2],
-      'harga': 100000,
-      'durasi': 1,
-      'no_tlp': 6289123456789,
-      'spealis': 'Kambing & Domba',
-      'lokasi_praktik': 'Jl. Peternakan Sejahtera No. 88, Yogyakarta',
-      'pukul_mulai': '07:00',
-      'pukul_akhir': '10:30',
-      'pendidikan': 'S1 Peternakan - UGM;Kursus Nutrisi Ruminansia;Sertifikasi Manajemen Domba',
-      'pengalaman': '3 tahun pengalaman konsultasi kambing dan domba',
-      'fokus_konsultasi': 'Efisiensi pakan kambing & domba',
-      'created_at': DateTime.now().toString(),
-      'updated_at': DateTime.now().toString(),
-    },
-  ];
+  @override
+  State<KonsultasiPakarList> createState() => _KonsultasiPakarListState();
+}
 
-
+class _KonsultasiPakarListState extends State<KonsultasiPakarList> {
+  final ApiService _apiService = ApiService();
+  List<KonsultasiPakarItemModel.KonsultasiPakarItem> items = [];
+  bool isLoading = true;
 
   @override
-    Widget build(BuildContext context) {
-      return ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-        itemCount: items.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
-        itemBuilder: (context, index) {
-          final it = items[index];
+  void initState() {
+    super.initState();
+    _fetchKonsultasiPakar();
+  }
 
-          return KonsultasiPakanItem(
-            imageUrl: it['image_url'] as String,
-            nama: it['nama'] as String,
-            spealis: it['spealis'] as String,
-            pukulMulai: it['pukul_mulai'] as String,
-            pukulAkhir: it['pukul_akhir'] as String,
-            harga: (it['harga'] as int),
-            durasi: (it['durasi'] as int),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => KonsultasiPakanDetailPage.fromMap(it),
-                ),
-              );
-            },
-          );
-        },
-      );
+  Future<void> _fetchKonsultasiPakar() async {
+    try {
+      final konsultasiPakarList = await _apiService.getAllKonsultasiPakar();
+      setState(() {
+        items = konsultasiPakarList;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        isLoading = false; // Stop loading on error
+      });
+      print("Error fetching data: $e");
     }
+  }
 
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: isLoading
+          ? Center(child: CircularProgressIndicator()) // Show loading indicator while fetching
+          : items.isEmpty
+              ? Center(child: Text("Tidak ada Konsultasi Pakar tersedia."))
+              : ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                  itemCount: items.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final item = items[index];
+                    return KonsultasiPakarItem(
+                      imageUrl: item.imageUrl,
+                      nama: item.nama,
+                      spealis: item.spealis,
+                      pukulMulai: item.pukulMulai.toString(),
+                      pukulAkhir: item.pukulAkhir.toString(),
+                      harga: item.harga,
+                      durasi: item.durasi,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => KonsultasiPakarDetailPage.fromMap(item.toJson()),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+    );
+  }
 }

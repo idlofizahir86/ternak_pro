@@ -277,9 +277,9 @@ class _CustomDropdownInputTernakState extends State<CustomDropdownInputTernak> {
   ];
 
   final icons = [
-    {'path': 'assets/home_assets/icons/ic_snack.png', 'name': 'ic_snack'},
-    {'path': 'assets/home_assets/icons/ic_shield.png', 'name': 'ic_shield'},
-    {'path': 'assets/home_assets/icons/ic_shield.png', 'name': 'ic_shield'},
+    {'path': 'https://assets.ternakpro.id/icons/ic_snack.png', 'name': 'ic_snack'},
+    {'path': 'https://assets.ternakpro.id/icons/ic_shield.png', 'name': 'ic_shield'},
+    {'path': 'https://assets.ternakpro.id/icons/ic_shield.png', 'name': 'ic_shield'},
     // Add more icons
   ];
 

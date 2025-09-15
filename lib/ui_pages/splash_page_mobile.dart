@@ -83,7 +83,7 @@ class _SplashPageMobileState extends State<SplashPageMobile> {
             child: Align(
               alignment: Alignment.bottomCenter,
               child: Text(
-                'Copyright © 2025 All rights reserved.',
+                'Copyright © 2025\nAll rights reserved.',
                 style: AppTextStyle.medium.copyWith(
                   color: AppColors.white100,
                 ),

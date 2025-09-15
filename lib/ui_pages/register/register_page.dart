@@ -33,6 +33,7 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
   bool passwordConfirmationFocused = false;
   bool nameFocused = false;
   String? errorMessage;
+  String? successMessage;
   int selectedRoleId = 3;
 
   bool isLoading = false;
@@ -83,12 +84,25 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
     });
   }
 
+  void showSuccess(String msg) {
+    setState(() {
+      successMessage = msg;
+      _notifAnimController?.forward(from: 0);
+    });
+    Future.delayed(const Duration(seconds: 5), () {
+      if (mounted && successMessage == msg) {
+        _closeError();
+      }
+    });
+  }
+
   void _closeError() {
     _notifAnimController?.reverse();
     Future.delayed(const Duration(milliseconds: 350), () {
       if (mounted) {
         setState(() {
           errorMessage = null;
+          successMessage = null;
           emailError = false;
           noTeleponError = false;
           passwordError = false;
@@ -158,7 +172,7 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
       );
       // Tampilkan pesan selamat datang
       if (mounted) {
-        showError("Selamat datang, ${user.name}! Registrasi berhasil.");
+        showSuccess("Selamat datang, ${user.name}! Registrasi berhasil.");
         Future.delayed(const Duration(seconds: 2), () {
           isLoading = false;
           if (mounted) {
@@ -590,6 +604,40 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                     elevation: 20,
                     child: Container(
                       color: AppColors.primaryRed,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              errorMessage!,
+                              style: AppTextStyle.semiBold.copyWith(
+                                color: Colors.white,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+          if (successMessage != null)
+            Positioned(
+              top: 56,
+              left: 0,
+              right: 0,
+              child: IgnorePointer(
+                ignoring: true,
+                child: FadeTransition(
+                  opacity: _notifOpacity!,
+                  child: Material(
+                    color: Colors.transparent,
+                    elevation: 20,
+                    child: Container(
+                      color: AppColors.green01,
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       child: Row(
                         children: [

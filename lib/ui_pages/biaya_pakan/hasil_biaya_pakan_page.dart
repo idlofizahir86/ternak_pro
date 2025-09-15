@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'dart:math' as math;  // Import ini untuk sqrt() dan math lainnya
 import '../../shared/theme.dart';
 import '../../shared/widgets/custom_image_view.dart';
 import '../../shared/widgets/onboarding_buttom.dart';
@@ -57,15 +59,81 @@ Widget _buildHeaderSection(BuildContext context) {
 }
 
 // Halaman Utama
-class HasilBiayaPakanPage extends StatelessWidget {
-  const HasilBiayaPakanPage({super.key});
+class HasilBiayaPakanPage extends StatefulWidget {
+  final String selectedTernak;
+  final int jumlahTernak;
+  final int usiaBulan;
+  final List<String> pakanList;
+  final List<double> hargaList;
+
+  const HasilBiayaPakanPage({
+    super.key,
+    required this.selectedTernak,
+    required this.jumlahTernak,
+    required this.usiaBulan,
+    required this.pakanList,
+    required this.hargaList,
+  });
+
+  @override
+  State<HasilBiayaPakanPage> createState() => _HasilBiayaPakanPageState();
+}
+
+class _HasilBiayaPakanPageState extends State<HasilBiayaPakanPage> {
+  late double totalHarian;
+  late double totalMingguan;
+  late double totalBulanan;
+
+  @override
+  void initState() {
+    super.initState();
+    _calculateTotals();
+  }
+
+  // Fungsi perhitungan dinamis
+  void _calculateTotals() {
+    double total = 0.0;
+    for (int i = 0; i < widget.pakanList.length; i++) {
+      final kebutuhan = _getKebutuhanPerPakan(widget.selectedTernak, widget.usiaBulan);
+      final harga = widget.hargaList[i];
+      total += kebutuhan * harga * widget.jumlahTernak;
+    }
+    totalHarian = total;
+    totalMingguan = total * 7;
+    totalBulanan = total * 30;
+  }
+
+  // Estimasi kebutuhan harian per ternak (kg/hari, berdasarkan jenis dan usia)
+  double _getKebutuhanPerPakan(String ternak, int usiaBulan) {
+    double base;
+    if (ternak == 'Ayam') {
+      base = 0.12; // Base 120g/hari
+      return base * (1 + usiaBulan / 120.0); // +10% per tahun
+    } else if (ternak == 'Sapi') {
+      base = 2.5; // Base 2.5kg/hari untuk muda
+      return base * math.sqrt(usiaBulan / 12.0); // Skala dengan sqrt(usia tahun)
+    } else {
+      return 1.0; // Default
+    }
+  }
+
+  // Format rupiah
+  String _formatRupiah(double amount) {
+    final formatter = NumberFormat('#,##0', 'id_ID');
+    return 'Rp. ${formatter.format(amount.toInt())}';
+  }
+
+  // Format kebutuhan (contoh: "1,2 kg / Hari")
+  String _formatKebutuhan(double kg) {
+    return '${(kg * 10).round() / 10}, ${(kg * 1000).round() % 1000 == 0 ? 0 : ((kg * 1000).round() % 1000).toString().padLeft(3, '0')} kg / Hari';
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(MediaQuery.of(context).size.height * 0.12),
-        child: _buildHeaderSection(context),  // Menggunakan header yang sudah dibuat
+        child: _buildHeaderSection(context),
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16),
@@ -100,11 +168,11 @@ class HasilBiayaPakanPage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Image.asset(
-                        "assets/biaya_pakan_assets/icons/ayam.png",
+                        "assets/biaya_pakan_assets/icons/ayam.png", // Bisa dinamis berdasarkan ternak
                         width: 24,
                       ),
                       SizedBox(width: 10),
-                      Text('Jenis Peternak : Ayam Petelur',
+                      Text('Jenis Peternak : ${widget.selectedTernak}',
                       style: AppTextStyle.medium.copyWith(fontSize: 14),)
                     ],
                   ),
@@ -118,7 +186,7 @@ class HasilBiayaPakanPage extends StatelessWidget {
                         width: 24,
                       ),
                       SizedBox(width: 10),
-                      Text('Jumlah Ternak : 5 Ekor',
+                      Text('Jumlah Ternak : ${widget.jumlahTernak} Ekor',
                       style: AppTextStyle.medium.copyWith(fontSize: 14),)
                     ],
                   ),
@@ -132,7 +200,7 @@ class HasilBiayaPakanPage extends StatelessWidget {
                         width: 24,
                       ),
                       SizedBox(width: 10),
-                      Text('Usia Ternak : 12 Bulan',
+                      Text('Usia Ternak : ${widget.usiaBulan} Bulan',
                       style: AppTextStyle.medium.copyWith(fontSize: 14),)
                     ],
                   ),
@@ -166,97 +234,72 @@ class HasilBiayaPakanPage extends StatelessWidget {
                     ),
                   ),
                   SizedBox(height: 13),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Column(
+                  // Dinamis: Loop pakan
+                  ...List.generate(widget.pakanList.length, (index) {
+                    final kebutuhan = _getKebutuhanPerPakan(widget.selectedTernak, widget.usiaBulan);
+                    final harga = widget.hargaList[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 5),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Jenis Pakan',
-                            style: AppTextStyle.extraBold.copyWith(
-                              fontSize: 14,
-                            ),
-                          ),
-                          SizedBox(height: 13),
-                          Text('Dedak',
-                            style: AppTextStyle.medium.copyWith(
-                              fontSize: 14,
-                            ),
-                          ),
-                          SizedBox(height: 5),
-                          Text('Dedak',
-                            style: AppTextStyle.medium.copyWith(
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Kebutuhan',
-                            style: AppTextStyle.extraBold.copyWith(
-                              fontSize: 14,
-                            ),
-                          ),
-                          SizedBox(height: 13),
-                          Row(
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Image.asset(
-                                'assets/biaya_pakan_assets/icons/ic_plus_minus.png',
-                                width: 9,
-                              ),
-                              SizedBox(width: 2),
-                              Text("1,2 kg / Hari",
-                                style: AppTextStyle.medium.copyWith(
-                                  fontSize: 14,
+                              if (index == 0) ...[
+                                Text('Jenis Pakan',
+                                  style: AppTextStyle.extraBold.copyWith(fontSize: 14),
                                 ),
+                                SizedBox(height: 13),
+                              ],
+                              Text(widget.pakanList[index],
+                                style: AppTextStyle.medium.copyWith(fontSize: 14),
                               ),
                             ],
                           ),
-                          SizedBox(height: 5),
-                          Row(
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Image.asset(
-                                'assets/biaya_pakan_assets/icons/ic_plus_minus.png',
-                                width: 9,
-                              ),
-                              SizedBox(width: 2),
-                              Text("0,5 kg / Hari",
-                                style: AppTextStyle.medium.copyWith(
-                                  fontSize: 14,
+                              if (index == 0) ...[
+                                Text('Kebutuhan',
+                                  style: AppTextStyle.extraBold.copyWith(fontSize: 14),
                                 ),
+                                SizedBox(height: 13),
+                              ],
+                              Row(
+                                children: [
+                                  Image.asset(
+                                    'assets/biaya_pakan_assets/icons/ic_plus_minus.png',
+                                    width: 9,
+                                  ),
+                                  SizedBox(width: 2),
+                                  Text(_formatKebutuhan(kebutuhan),
+                                    style: AppTextStyle.medium.copyWith(fontSize: 14),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (index == 0) ...[
+                                Text('Harga',
+                                  style: AppTextStyle.extraBold.copyWith(fontSize: 14),
+                                ),
+                                SizedBox(height: 13),
+                              ],
+                              Text(_formatRupiah(harga),
+                                style: AppTextStyle.medium.copyWith(fontSize: 14),
                               ),
                             ],
                           ),
                         ],
                       ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Harga',
-                            style: AppTextStyle.extraBold.copyWith(
-                              fontSize: 14,
-                            ),
-                          ),
-                          SizedBox(height: 13),
-                          Text('Rp. 6.000',
-                            style: AppTextStyle.medium.copyWith(
-                              fontSize: 14,
-                            ),
-                          ),
-                          SizedBox(height: 5),
-                          Text('Rp. 3.250',
-                            style: AppTextStyle.medium.copyWith(
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  Divider(),
+                    );
+                  }),
+                  if (widget.pakanList.length > 1) const Divider(),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -264,43 +307,31 @@ class HasilBiayaPakanPage extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('Total Biaya Harian',
-                            style: AppTextStyle.extraBold.copyWith(
-                              fontSize: 16,
-                            ),
+                            style: AppTextStyle.extraBold.copyWith(fontSize: 16),
                           ),
                           SizedBox(height: 13),
                           Text('Estimasi Biaya Mingguan',
-                            style: AppTextStyle.medium.copyWith(
-                              fontSize: 14,
-                            ),
+                            style: AppTextStyle.medium.copyWith(fontSize: 14),
                           ),
                           SizedBox(height: 10),
                           Text('Estimasi Biaya Bulanan',
-                            style: AppTextStyle.medium.copyWith(
-                              fontSize: 14,
-                            ),
+                            style: AppTextStyle.medium.copyWith(fontSize: 14),
                           ),
                         ],
                       ),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Rp. 9.250',
-                            style: AppTextStyle.extraBold.copyWith(
-                              fontSize: 16,
-                            ),
+                          Text(_formatRupiah(totalHarian),
+                            style: AppTextStyle.extraBold.copyWith(fontSize: 16),
                           ),
                           SizedBox(height: 13),
-                          Text('Rp.64.750',
-                            style: AppTextStyle.extraBold.copyWith(
-                              fontSize: 16,
-                            ),
+                          Text(_formatRupiah(totalMingguan),
+                            style: AppTextStyle.extraBold.copyWith(fontSize: 16),
                           ),
                           SizedBox(height: 10),
-                          Text('Rp.277.500',
-                            style: AppTextStyle.extraBold.copyWith(
-                              fontSize: 16,
-                            ),
+                          Text(_formatRupiah(totalBulanan),
+                            style: AppTextStyle.extraBold.copyWith(fontSize: 16),
                           ),
                         ],
                       )

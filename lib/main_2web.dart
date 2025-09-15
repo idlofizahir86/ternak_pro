@@ -33,7 +33,7 @@ import 'package:flutter/services.dart';
 import 'providers/auth_provider.dart';
 import 'ui_pages/biaya_pakan/perkiraan_biaya_pakan_page.dart';
 import 'ui_pages/harga_pasar/harga_pasar_page.dart';
-import 'ui_pages/konsultasi_pakan/konsultasi_pakan_page.dart';
+import 'ui_pages/konsultasi_pakar/konsultasi_pakar_page.dart';
 import 'ui_pages/main/main_page_mobile.dart';
 import 'ui_pages/rekomendasi_ternak/hasil_rekomendasi_ternak_page.dart';
 import 'ui_pages/supplier_pakan/supplier_limbah_pakan_page.dart';
@@ -175,7 +175,7 @@ class MyApp extends StatelessWidget {
           '/tambah-data-ternak': (context) => TambahDataTernakPage(),
           '/tambah-data-tugas': (context) => TambahDataTugasPage(),
 
-          '/konsultasi-pakan': (context) => KonsultasiPakanPage(),
+          '/konsultasi-pakan': (context) => KonsultasiPakarPage(),
           '/supplier-limbah-pakan': (context) => SupplierLimbahPakanPage(),
 
           '/harga-pasar': (context) => HargaPasarPage(),
@@ -190,7 +190,7 @@ class MyApp extends StatelessWidget {
           '/tambah-data-keuangan': (context) => TambahDataKeuanganPage(),
 
           '/rekomendasi-ternak-potensial': (context) => RekomendasiTernakPage(),
-          '/hasil-rekomendasi-peternak': (context) => HasilRekomendasiTernakPage(),
+          // '/hasil-rekomendasi-peternak': (context) => HasilRekomendasiTernakPage(),
         },
       ),
     );

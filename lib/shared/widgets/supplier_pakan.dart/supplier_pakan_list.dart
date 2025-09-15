@@ -4,6 +4,7 @@ import 'package:ternak_pro/shared/widgets/custom_button.dart';
 import 'package:ternak_pro/shared/widgets/onboarding_buttom.dart';
 import 'package:ternak_pro/shared/widgets/supplier_pakan.dart/hubungi_button.dart';
 
+import '../../../services/api_service.dart';
 import '../../../ui_pages/supplier_pakan/supplier_limbah_pakan_detail_page.dart';
 import '../../theme.dart';
 
@@ -153,107 +154,91 @@ class SupplierPakanItem extends StatelessWidget {
   }
 }
 
-class SupplierPakanList extends StatelessWidget {
+class SupplierPakanList extends StatefulWidget {
   final String searchQuery;
 
-  SupplierPakanList({
+  const SupplierPakanList({
     super.key,
     this.searchQuery = '',
   });
 
-  final List<Map<String, dynamic>> items = [
-    {
-      'id': 1,
-      'image_url': 'assets/supplier_pakan_assets/images/sekam.png;assets/supplier_pakan_assets/images/sekam2.png',
-      'judul': 'SEKAM MENTAH PREMIUM 1 KARUNG / 50 KG',
-      'detail': 'Sekam padi kualitas premium cocok untuk bedding ternak.Sekam padi kualitas premium cocok untuk bedding ternak.Sekam padi kualitas premium cocok untuk bedding ternak.Sekam padi kualitas premium cocok untuk bedding ternak.Sekam padi kualitas premium cocok untuk bedding ternak.Sekam padi kualitas premium cocok untuk bedding ternak.Sekam padi kualitas premium cocok untuk bedding ternak.',
-      'khasiat':
-        'Sumber Serat Terbaik: Jerami jagung kaya akan serat kasar yang sangat penting untuk sistem pencernaan ruminansia. Serat membantu merangsang pergerakan lambung dan mencegah masalah pencernaan seperti kembung.;Pakan Tambahan Ekonomis: Sebagai pakan tambahan, jerami jagung dapat membantu mengurangi biaya pakan konsentrat tanpa mengorbankan nutrisi esensial.;Meningkatkan Nafsu Makan: Aroma alami dari jerami jagung seringkali disukai oleh ternak, sehingga dapat meningkatkan nafsu makan dan mendorong asupan nutrisi yang lebih baik.',
-      'kategori_id': 1,
-      'is_stok': 1,
-      'is_nego': 1,
-      'harga': 130850,
-      'no_tlp': 6281234567890,
-      'alamat_overview': 'Nasional',
-      'alamat': 'Jl. Raya Pakan No. 123, Jakarta',
-      'maps_link': 'https://maps.google.com/?q=-6.200000,106.816666',
-      'created_at': DateTime.now().toString(),
-      'updated_at': DateTime.now().toString(),
-    },
-    {
-      'id': 2,
-      'image_url': 'assets/harga_pasar_assets/images/daging_ayam.png;assets/harga_pasar_assets/images/daging_ayam2.png',
-      'judul': 'Daging Ayam Segar',
-      'detail': 'Daging ayam potong segar kualitas premium.',
-      'khasiat':
-        'Sumber protein tinggi untuk tubuh.;Baik untuk pertumbuhan otot.;Meningkatkan stamina.',
-      'kategori_id': 2,
-      'is_stok': 0,
-      'is_nego': 0,
-      'harga': 75000,
-      'no_tlp': 6281234567891,
-      'alamat_overview': 'Nasional',
-      'alamat': 'Jl. Pasar Hewan No. 45, Bandung',
-      'maps_link': 'https://maps.google.com/?q=-6.914744,107.609810',
-      'created_at': DateTime.now().toString(),
-      'updated_at': DateTime.now().toString(),
-    },
-    {
-      'id': 3,
-      'image_url': 'assets/harga_pasar_assets/images/susu_kambing.png;assets/harga_pasar_assets/images/susu_kambing2.png',
-      'judul': 'Susu Kambing Etawa',
-      'detail': 'Susu kambing Etawa segar langsung dari peternak.Sekam padi kualitas premium cocok untuk bedding ternak.Sekam padi kualitas premium cocok untuk bedding ternak.',
-      'khasiat':
-        'Meningkatkan stamina.;Baik untuk pencernaan.;Membantu menjaga daya tahan tubuh.',
-      'kategori_id': 3,
-      'is_stok': 1,
-      'is_nego': 1,
-      'harga': 35000,
-      'no_tlp': 6281234567892,
-      'alamat_overview': 'Nasional',
-      'alamat': 'Jl. Ternak Makmur No. 88, Yogyakarta',
-      'maps_link': 'https://maps.google.com/?q=-7.795580,110.369490',
-      'created_at': DateTime.now().toString(),
-      'updated_at': DateTime.now().toString(),
-    },
-  ];
+  @override
+  _SupplierPakanListState createState() => _SupplierPakanListState();
+}
 
+class _SupplierPakanListState extends State<SupplierPakanList> {
+  late Future<List<Map<String, dynamic>>> supplierPakanFuture;
 
+  @override
+  void initState() {
+    super.initState();
+    supplierPakanFuture = _fetchSupplierPakanData();
+  }
+
+  // Fetch data from the API
+  Future<List<Map<String, dynamic>>> _fetchSupplierPakanData() async {
+    try {
+      List<Map<String, dynamic>> items = await ApiService().getAllSuplierPakan();
+      return items;
+    } catch (e) {
+      print('Error fetching data: $e');
+      return [];
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final q = searchQuery.trim().toLowerCase();
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: supplierPakanFuture,  // Use the future for fetching data
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());  // Show loading spinner
+        }
 
-    final filtered = items.where((it) {
-      final name = (it['judul'] as String).toLowerCase();
-      final okQuery = q.isEmpty || name.contains(q);
-      return okQuery;
-    }).toList();
+        if (snapshot.hasError) {
+          return Center(child: Text('Error fetching data'));
+        }
 
-    return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(8, 8, 8, 50),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 8.0,
-        mainAxisSpacing: 8.0,
-        childAspectRatio: 0.65, // Pastikan sama dengan AspectRatio di Card
-      ),
-      itemCount: filtered.length,
-      itemBuilder: (context, index) {
-        final item = filtered[index];
-        return SupplierPakanItem(
-          lokasi: item['alamat_overview'],
-          imageUrl:(item['image_url'] as String).split(';').first,
-          noTelepon: item['no_tlp'].toString(),
-          name: item['judul'],
-          harga: item['harga'],
-          isStok: item['is_stok'] == 1 ? true : false,
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => SupplierLimbahPakanDetailPage.fromMap(item),
-              ),
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return Center(child: Text('No data available'));
+        }
+
+        final items = snapshot.data!;
+
+        // Filter based on search query
+        final q = widget.searchQuery.trim().toLowerCase();
+        final filtered = items.where((it) {
+          final name = (it['judul'] as String).toLowerCase();
+          final okQuery = q.isEmpty || name.contains(q);
+          return okQuery;
+        }).toList();
+
+        return GridView.builder(
+          padding: const EdgeInsets.fromLTRB(8, 8, 8, 50),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: 8.0,
+            mainAxisSpacing: 8.0,
+            childAspectRatio: 0.65, // Ensure this matches the AspectRatio in Card
+          ),
+          itemCount: filtered.length,
+          itemBuilder: (context, index) {
+            final item = filtered[index];
+            return SupplierPakanItem(
+              lokasi: item['alamat_overview'],
+              imageUrl: (item['image_url'] as String).split(';').first,  // Use the first image URL
+              noTelepon: item['no_tlp'].toString(),
+              name: item['judul'],
+              harga: item['harga'],
+              isStok: item['is_stok'] == 1 ? true : false,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => SupplierLimbahPakanDetailPage.fromMap(item),
+                  ),
+                );
+              },
             );
           },
         );

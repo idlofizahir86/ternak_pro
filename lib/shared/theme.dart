@@ -53,6 +53,8 @@ static const Color red600 = Color(0xFFDC2626);
   static const Color green01 = Color(0xFF0EBCB1);
   static const Color green0110 = Color(0x190EBCB1 ); // 10% opacity
 
+  static const Color greenTips = Color(0xFFE4F8EA);
+
   static const Color blue10 = Color(0x1966A4FF ); // 10% opacity
 
   static const Color green02 = Color(0xFFC2ECEB);
@@ -164,6 +166,12 @@ class AppTextStyle {
 
   static final TextStyle medium = GoogleFonts.inter(
     fontWeight: FontWeight.w500,
+  );
+
+
+  static final TextStyle italic = GoogleFonts.inter(
+    fontWeight: FontWeight.w500,
+    fontStyle: FontStyle.italic,
   );
 
   // Montserrat variants

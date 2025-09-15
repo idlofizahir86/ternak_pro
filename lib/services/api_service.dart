@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ternak_pro/models/BannerItem.dart';
+import 'package:ternak_pro/models/KonsultasiPakarItem.dart';
 import 'package:ternak_pro/models/TernakItem.dart';
 import 'package:ternak_pro/models/TipsItem.dart';
 import 'package:intl/intl.dart';
@@ -11,6 +12,7 @@ import 'package:intl/intl.dart';
 import '../cubit/page_cubit.dart';
 import '../models/DailyTaskItem.dart';
 import '../models/KeuanganItem.dart';
+import '../models/NotificationData.dart';
 import '../models/user.dart';
 import '../shared/custom_loading.dart';
 import '../shared/theme.dart';
@@ -18,6 +20,7 @@ import '../shared/theme.dart';
 class ApiService {
   // Base URL untuk API
   static const String _baseUrl = 'https://ternakpro.id/api/v1';
+  // static const String _baseUrl = 'https://aquamarine-ferret-962895.hostingersite.com/api/v1';
 
   // Fungsi untuk menyimpan token dan user_id ke SharedPreferences
     Future<void> _saveCredentials(String token, String userId, String email, String noTelepon, String name, int roleId) async {
@@ -335,7 +338,6 @@ class ApiService {
       await prefs.remove('_locationLatKey');
       await prefs.remove('_locationLngKey');
       await prefs.remove('_locationAddressKey');
-      await prefs.remove('hasSeenBanner');
       await prefs.remove('chatMessages');
 
       context.read<PageCubit>().setPage(0);
@@ -352,10 +354,34 @@ class ApiService {
   //***************************************************Harga Pasar Endpoints*******************************************************
   //***************************************************Harga Pasar Endpoints*******************************************************
   //***************************************************Harga Pasar Endpoints*******************************************************
-  Future<List<dynamic>> getAllHargaPasar() async {
-    final response = await _makeRequest(method: 'GET', endpoint: '/harga-pasar');
-    return _handleResponse(response);
+  Future<List<Map<String, dynamic>>> getAllHargaPasar() async {
+    final response = await _makeRequest(
+      method: 'GET',
+      endpoint: '/harga-pasar',
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> tipsKategoris = jsonDecode(response.body);
+
+      print(("tips data:", tipsKategoris));
+
+      return tipsKategoris.map((item) {
+        return {
+          'id': item['id'],
+          'image_url': item['image_url'],
+          'nama': item['nama'],
+          'harga_kg': item['harga_kg'],
+          'kondisi': item['kondisi'],
+          'lokasi': item['lokasi'],
+          'created_at': DateTime.parse(item['created_at']),  // Parse to DateTime
+          'updated_at': DateTime.parse(item['updated_at']),  // Parse to DateTime
+        };
+      }).toList();
+    } else {
+      throw Exception('Gagal mengambil data kategori harga pasar');
+    }
   }
+
 
   Future<dynamic> storeHargaPasar(Map<String, dynamic> data) async {
     final response = await _makeRequest(method: 'POST', endpoint: '/harga-pasar', body: data);
@@ -394,10 +420,41 @@ class ApiService {
       }
   }
 
-  Future<List<dynamic>> getAllSuplierPakan() async {
-    final response = await _makeRequest(method: 'GET', endpoint: '/suplier-pakan');
-    return _handleResponse(response);
+  Future<List<Map<String, dynamic>>> getAllSuplierPakan() async {
+    final response = await _makeRequest(
+      method: 'GET',
+      endpoint: '/suplier-pakan',
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> tipsKategoris = jsonDecode(response.body);
+
+      print("suplier data: $tipsKategoris");
+
+      return tipsKategoris.map((item) {
+        return {
+          'id': item['id'],  // Make sure these keys match the response JSON structure
+          'image_url': item['image_url'],
+          'judul': item['judul'],
+          'detail': item['detail'],
+          'khasiat': item['khasiat'],
+          'kategori_id': item['kategori_id'],
+          'is_stok': item['is_stok'],
+          'is_nego': item['is_nego'],
+          'harga': item['harga'],
+          'no_tlp': item['no_tlp'],
+          'alamat_overview': item['alamat_overview'],
+          'alamat': item['alamat'],
+          'maps_link': item['maps_link'],
+          'created_at': item['created_at'],
+          'updated_at': item['updated_at'],
+        };
+      }).toList();
+    } else {
+      throw Exception('Gagal mengambil data kategori harga pasar');
+    }
   }
+
 
   Future<dynamic> storeSuplierPakan(Map<String, dynamic> data) async {
     final response = await _makeRequest(method: 'POST', endpoint: '/suplier-pakan', body: data);
@@ -438,9 +495,28 @@ class ApiService {
       }
   }
 
-  Future<List<dynamic>> getAllKonsultasiPakar() async {
-    final response = await _makeRequest(method: 'GET', endpoint: '/konsultasi-pakar');
-    return _handleResponse(response);
+  Future<List<KonsultasiPakarItem>> getAllKonsultasiPakar() async {
+
+    try {
+      final response = await _makeRequest(
+        method: 'GET',
+        endpoint: '/konsultasi-pakar',
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> tipsList = jsonDecode(response.body);
+        // Mengonversi setiap elemen tipsList menjadi objek TipsItem
+        List<KonsultasiPakarItem> tasks = tipsList.map<KonsultasiPakarItem>((item) {
+          return KonsultasiPakarItem.fromJson(item);
+        }).toList();
+
+        return tasks; // Mengembalikan list tips
+      } else {
+        throw Exception('Gagal mengambil data konsultasi');
+      }
+    } catch (e) {
+      throw Exception('Error saat mengambil data konsultasi: $e');
+    }
   }
 
   Future<dynamic> storeKonsultasiPakar(Map<String, dynamic> data) async {
@@ -1277,7 +1353,7 @@ Future<bool> storeTugas({
   Future<List<BannerItem>> fetchBanners() async {
     final response = await http.get(
       Uri.parse(
-        "https://ternakpro.id/api/v1/active-banners",
+        "$_baseUrl/active-banners",
       ),
     );
 
@@ -1294,7 +1370,7 @@ Future<bool> storeTugas({
   Future<int> fetchBannersCount() async {
     final response = await http.get(
       Uri.parse(
-        "https://lime-gaur-237784.hostingersite.com/api/get_banners.php",
+        "$_baseUrl/active-banners",
       ),
     );
 
@@ -1304,6 +1380,121 @@ Future<bool> storeTugas({
       return bannersList.length; // Mengembalikan jumlah notifikasi
     } else {
       throw Exception('Failed to load notifications');
+    }
+  }
+
+  //***************************************************Notifikasi Endpoints*******************************************************
+  //***************************************************Notifikasi Endpoints*******************************************************
+  //***************************************************Notifikasi Endpoints*******************************************************
+  Future<List<NotificationData>> fetchNotifications(String userId) async {
+    final response = await http.get(
+      Uri.parse(
+        '$_baseUrl/notifications/$userId',
+      ),
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      return (data['data'] as List)
+          .map((item) => NotificationData.fromJson(item))
+          .toList();
+    } else {
+      throw Exception('Failed to load banners');
+    }
+  }
+
+  //***************************************************Rekomendasi Ternak Endpoints*******************************************************
+  //***************************************************Rekomendasi Ternak Endpoints*******************************************************
+  //***************************************************Rekomendasi Ternak Endpoints*******************************************************
+  Future<Map<String, dynamic>> getRekomendasiTernak({
+    required String region,
+    required num landLength,
+    required num landWidth,
+    required String goal, // 'daging', 'telur', 'susu', 'bibit', 'lainnya'
+    required List<String> availableFeed,
+    required String timeAvailability, // 'pagi', 'siang', 'sore', 'sepanjang_hari'
+    required String experience, // 'pemula', 'menengah', 'ahli'
+  }) async {
+    try {
+      // Validasi sederhana di client-side (opsional)
+      if (region.isEmpty || region.length > 100) {
+        throw Exception('Region harus string valid (max 100 karakter)');
+      }
+      if (landLength < 1 || landLength > 1000 || landWidth < 1 || landWidth > 1000) {
+        throw Exception('Ukuran lahan harus antara 1-1000');
+      }
+      if (!['daging', 'telur', 'susu', 'bibit', 'lainnya'].contains(goal)) {
+        throw Exception('Goal tidak valid');
+      }
+      if (availableFeed.isEmpty) {
+        throw Exception('Available feed harus tidak kosong');
+      }
+      if (!['pagi', 'siang', 'sore', 'sepanjang_hari'].contains(timeAvailability)) {
+        throw Exception('Time availability tidak valid');
+      }
+      if (!['pemula', 'menengah', 'ahli'].contains(experience)) {
+        throw Exception('Experience tidak valid');
+      }
+
+      // Buat payload sesuai backend
+      final payload = <String, dynamic>{
+        'region': region,
+        'land_length': landLength,
+        'land_width': landWidth,
+        'goal': goal,
+        'available_feed': availableFeed, // Dikirim sebagai array
+        'time_availability': timeAvailability,
+        'experience': experience,
+      };
+
+      print('Sending recommendation request: $payload'); // Debug log
+
+      // Panggil _makeRequest (return http.Response)
+      final response = await _makeRequest(
+        method: 'POST',
+        endpoint: '/ai/rekomendasi-ternak',
+        body: payload,
+      );
+
+      // Pengecekan eksplisit statusCode == 200
+      if (response.statusCode == 200) {
+        // Parse JSON dari body
+        final responseBody = jsonDecode(response.body);
+        
+        // Cek success flag di JSON (opsional, tapi sesuai backend)
+        if (responseBody['success'] == true) {
+          print('Recommendation success: ${responseBody['data']}');
+          return responseBody; // Return full response (success: true, data: formatted)
+        } else {
+          throw Exception(responseBody['message'] ?? 'Unknown error from server');
+        }
+      } else {
+        // Handle error berdasarkan status code
+        String errorMessage;
+        try {
+          final errorBody = jsonDecode(response.body);
+          errorMessage = errorBody['message'] ?? 'Server error (${response.statusCode})';
+        } catch (e) {
+          errorMessage = 'Server error (${response.statusCode}): ${response.body}';
+        }
+        
+        print('Error response: $errorMessage (Status: ${response.statusCode})');
+        
+        switch (response.statusCode) {
+          case 422:
+            throw Exception('Validation failed: $errorMessage');
+          case 503:
+            throw Exception('AI service temporarily unavailable: $errorMessage');
+          case 500:
+            throw Exception('Server error: $errorMessage');
+          default:
+            throw Exception('Request failed: $errorMessage');
+        }
+      }
+
+    } catch (e) {
+      print('Error getting recommendation: $e'); // Log error
+      rethrow; // Propagate ke UI
     }
   }
 }

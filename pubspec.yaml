@@ -62,6 +62,7 @@ dependencies:
   flutter_typeahead: ^5.2.0  # Untuk search suggestions
 
   auto_size_text: ^3.0.0
+  flutter_markdown: ^0.7.3
 
   # webview_flutter: ^4.13.0
   # webview_flutter_android: ^3.16.7

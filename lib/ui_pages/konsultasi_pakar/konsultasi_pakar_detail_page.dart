@@ -3,9 +3,8 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../shared/theme.dart';
 import '../../shared/widgets/custom_image_view.dart';
-import '../../shared/widgets/supplier_pakan.dart/expandable_detail_text.dart';
 
-class KonsultasiPakanDetailPage extends StatefulWidget {
+class KonsultasiPakarDetailPage extends StatefulWidget {
   // ===== data yang diperlukan di halaman detail =====
   final int id;
   final String imageUrl;
@@ -23,8 +22,9 @@ class KonsultasiPakanDetailPage extends StatefulWidget {
   final String fokusKonsultasi;
   final String? createdAt;
   final String? updatedAt;
+  
 
-  const KonsultasiPakanDetailPage({
+  const KonsultasiPakarDetailPage({
     super.key,
     required this.id,
     required this.imageUrl,
@@ -45,8 +45,8 @@ class KonsultasiPakanDetailPage extends StatefulWidget {
   });
 
   /// Factory agar tinggal kirim Map `item` dari list
-  factory KonsultasiPakanDetailPage.fromMap(Map<String, dynamic> item) {
-    return KonsultasiPakanDetailPage(
+  factory KonsultasiPakarDetailPage.fromMap(Map<String, dynamic> item) {
+    return KonsultasiPakarDetailPage(
       id: item['id'] is int ? item['id'] : int.parse(item['id'].toString()),
       imageUrl: item['image_url']?.toString() ?? '',
       nama: item['nama']?.toString() ?? '',
@@ -67,13 +67,13 @@ class KonsultasiPakanDetailPage extends StatefulWidget {
   }
 
   @override
-  State<KonsultasiPakanDetailPage> createState() =>
-      _KonsultasiPakanDetailPageState();
+  State<KonsultasiPakarDetailPage> createState() =>
+      _KonsultasiPakarDetailPageState();
 }
 
 
-class _KonsultasiPakanDetailPageState
-    extends State<KonsultasiPakanDetailPage> {
+class _KonsultasiPakarDetailPageState
+    extends State<KonsultasiPakarDetailPage> {
   
     
   String formatRupiah(int value) {
@@ -118,7 +118,7 @@ class _KonsultasiPakanDetailPageState
       appBar: PreferredSize(
         preferredSize:
             Size.fromHeight(MediaQuery.of(context).size.height * 0.4),
-        child: _buildHeaderSection(context),
+        child: _buildHeaderSection(context, widget.imageUrl),
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -350,7 +350,7 @@ class _KonsultasiPakanDetailPageState
 }
 
 // ===================== Header (tetap) =====================
-Widget _buildHeaderSection(BuildContext context) {
+Widget _buildHeaderSection(BuildContext context, imageURL) {
   return Container(
     height: MediaQuery.of(context).size.height * 0.4,
     width: double.infinity,
@@ -389,8 +389,8 @@ Widget _buildHeaderSection(BuildContext context) {
           top: 120,
           left: 24,
           right: 24,
-          child: Image.asset(
-            'assets/konsultasi_pakan_assets/images/team.png',
+          child: Image.network(
+            imageURL,
             height: MediaQuery.of(context).size.height * 0.3,
             width: double.infinity,
             fit: BoxFit.fitHeight,

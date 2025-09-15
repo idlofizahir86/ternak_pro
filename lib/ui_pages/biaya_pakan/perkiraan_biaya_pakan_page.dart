@@ -131,7 +131,11 @@ class _CustomDropdownInputTernakState extends State<CustomDropdownInputTernak> {
 
   @override
   Widget build(BuildContext context) {
-    String imageUrl = widget.iconOptions[widget.options.indexOf(selectedValue)];
+    String imageUrl = '';
+    // Memastikan selectedValue ada dalam options sebelum mencoba mengakses index
+    if (widget.options.contains(selectedValue)) {
+      imageUrl = widget.iconOptions[widget.options.indexOf(selectedValue)];
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -330,20 +334,16 @@ class PerkiraanBiayaPakanPageState extends State<PerkiraanBiayaPakanPage> {
   final TextEditingController _usiaTernakController = TextEditingController();
   final TextEditingController _jumlahTernakController = TextEditingController();
 
-  final List<String> _selectedPakanList = []; // List untuk menyimpan selected value untuk setiap row
-  final List<TextEditingController> _hargaControllers = []; // List untuk menyimpan controllers
+  final List<String> _selectedPakanList = []; // List untuk selected pakan
+  final List<TextEditingController> _hargaControllers = []; // List untuk harga
 
   String _selectedTernak = '';
 
   @override
   void initState() {
     super.initState();
-
-    // Inisialisasi row pertama dengan controller dan selected value kosong
     _hargaControllers.add(TextEditingController()); 
-    _selectedPakanList.add(''); // Entry kosong untuk selected value
-
-    
+    _selectedPakanList.add(''); 
   }
 
   @override
@@ -351,7 +351,7 @@ class PerkiraanBiayaPakanPageState extends State<PerkiraanBiayaPakanPage> {
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(MediaQuery.of(context).size.height * 0.12),
-        child: _buildHeaderSection(context),  // Menggunakan header yang sudah dibuat
+        child: _buildHeaderSection(context),
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16),
@@ -384,7 +384,7 @@ class PerkiraanBiayaPakanPageState extends State<PerkiraanBiayaPakanPage> {
               keyboardTipe: TextInputType.number,
             ),
 
-            // Menampilkan Row Pakan
+            // Row Pakan (sama seperti sebelumnya)
             Column(
               children: List.generate(_selectedPakanList.length, (index) {
                 return Row(
@@ -407,7 +407,7 @@ class PerkiraanBiayaPakanPageState extends State<PerkiraanBiayaPakanPage> {
                       child: CustomInputBiayaPakanField(
                         label: 'Harga Pakan Per Kg',
                         hintText: '40.000.000',
-                        controller: _hargaControllers[index], // Menggunakan controller untuk row tertentu
+                        controller: _hargaControllers[index],
                         isHarga: true,
                         keyboardTipe: TextInputType.number,
                       ),
@@ -423,12 +423,9 @@ class PerkiraanBiayaPakanPageState extends State<PerkiraanBiayaPakanPage> {
               width: double.infinity,
               onClick: () {
                 setState(() {
-                  // Tambahkan controller baru untuk harga pakan
                   TextEditingController newController = TextEditingController();
-                  _hargaControllers.add(newController); // Menyimpan controller baru
-                  _selectedPakanList.add(''); // Menambahkan entry kosong untuk selected value
-
-                  // Menambahkan row baru
+                  _hargaControllers.add(newController);
+                  _selectedPakanList.add('');
                 });
               },
             ),
@@ -438,19 +435,79 @@ class PerkiraanBiayaPakanPageState extends State<PerkiraanBiayaPakanPage> {
               previous: false,
               text: "Hitung Sekarang",
               width: double.infinity,
-              onClick: () {
-                // Navigasi ke halaman HasilBiayaPakanPage
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => HasilBiayaPakanPage(),
-                  ),
-                );
-              },
+              onClick: () => _handleCalculate(context), // Panggil handler baru
             ),
           ],
         ),
       ),
     );
+  }
+
+  // Handler baru untuk hitung dan navigasi
+  void _handleCalculate(BuildContext context) {
+    // Validasi input
+    if (_selectedTernak.isEmpty || 
+        _jumlahTernakController.text.isEmpty || 
+        _usiaTernakController.text.isEmpty ||
+        _selectedPakanList.every((p) => p.isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Semua field harus diisi, termasuk minimal 1 pakan.')),
+      );
+      return;
+    }
+
+    final jumlahTernak = int.tryParse(_jumlahTernakController.text) ?? 0;
+    final usiaBulan = int.tryParse(_usiaTernakController.text) ?? 0;
+    if (jumlahTernak <= 0 || usiaBulan <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Jumlah dan usia ternak harus lebih dari 0.')),
+      );
+      return;
+    }
+
+    // Filter pakan yang terisi (hilangkan kosong)
+    final List<String> validPakan = [];
+    final List<double> validHarga = [];
+    for (int i = 0; i < _selectedPakanList.length; i++) {
+      if (_selectedPakanList[i].isNotEmpty) {
+        final hargaStr = _hargaControllers[i].text.replaceAll(RegExp(r'[^0-9]'), '');
+        final harga = double.tryParse(hargaStr) ?? 0;
+        if (harga > 0) {
+          validPakan.add(_selectedPakanList[i]);
+          validHarga.add(harga);
+        }
+      }
+    }
+
+    if (validPakan.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Minimal 1 pakan dengan harga valid.')),
+      );
+      return;
+    }
+
+    // Navigasi dengan data
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HasilBiayaPakanPage(
+          selectedTernak: _selectedTernak,
+          jumlahTernak: jumlahTernak,
+          usiaBulan: usiaBulan,
+          pakanList: validPakan,
+          hargaList: validHarga,
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _usiaTernakController.dispose();
+    _jumlahTernakController.dispose();
+    for (var controller in _hargaControllers) {
+      controller.dispose();
+    }
+    super.dispose();
   }
 }

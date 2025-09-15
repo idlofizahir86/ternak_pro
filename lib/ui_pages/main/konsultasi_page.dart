@@ -193,8 +193,8 @@ Widget _buildKonsultasiServices(BuildContext context) {
           SizedBox(height: 8),
           KonsultasiItemCard(
             imagePath: 'assets/konsultasi_assets/icons/ic_konsul_1.png',
-            title: 'Konsultasi Pakan',
-            description: 'Konsultasi Pakan Dengan Para Pakar Dibidangnya',
+            title: 'Konsultasi Pakar',
+            description: 'Konsultasi Pakan dan Kesehatan Dengan Para Pakar Dibidangnya',
             backgroundColor: AppColors.bgF1,
             bgDescColor: AppColors.bgDescF1,
             onPressed: () {

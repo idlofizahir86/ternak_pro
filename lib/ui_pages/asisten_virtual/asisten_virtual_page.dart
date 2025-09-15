@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:ternak_pro/shared/custom_loading.dart';
@@ -16,7 +17,7 @@ class AsistenVirtualPage extends StatefulWidget {
 }
 
 class _AsistenVirtualPageState extends State<AsistenVirtualPage> {
-  List<Map<String, String>> messages = [];
+  List<Map<String, dynamic>> messages = []; // Ubah ke dynamic untuk menyimpan metadata
   final TextEditingController controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   bool isTyping = false;
@@ -28,6 +29,8 @@ class _AsistenVirtualPageState extends State<AsistenVirtualPage> {
   late ChatService _chatService;
   String? _currentUserId;
   int? _currentConversationId;
+  int _lastRequestId = 0; // Untuk melacak request terakhir
+  bool _isInitialized = false;
 
   @override
   void initState() {
@@ -40,34 +43,63 @@ class _AsistenVirtualPageState extends State<AsistenVirtualPage> {
       }
     });
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadUserData();
+    // Panggil load data dan auto-send setelah frame pertama
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _loadUserData();  // Tunggu full load selesai (conversation + messages)
       _unfocusKeyboard();
-
+      
+      // SEKARANG auto-send initialText jika ada
       if (widget.initialText != null &&
           widget.initialText!.trim().isNotEmpty &&
-          widget.externalInput == true) {
-        _handleSendMessage(widget.initialText!);
+          widget.externalInput == true &&
+          _isInitialized &&  // Double-check
+          _currentUserId != null &&
+          _currentConversationId != null) {  // Pastikan conversation siap
+        print('Auto-sending initialText: ${widget.initialText}');  // Debug log
+        await _handleSendMessage(widget.initialText!.trim());
+      } else {
+        print('Skipping auto-send: initialText=${widget.initialText}, initialized=$_isInitialized, convId=$_currentConversationId');
       }
     });
   }
 
   // Load data user dari SharedPreferences
   Future<void> _loadUserData() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _currentUserId = prefs.getString('user_id');
-    });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      setState(() {
+        _currentUserId = prefs.getString('user_id');
+      });
 
-    if (_currentUserId != null) {
-      await _loadOrCreateConversation();
-    } else {
-      // Jika tidak ada user ID, gunakan mode guest atau handle error
+      if (_currentUserId != null) {
+        await _loadOrCreateConversation();
+        
+        // Setelah load selesai, baru proses initial text jika ada
+        if (widget.initialText != null &&
+            widget.initialText!.trim().isNotEmpty &&
+            widget.externalInput == true) {// Langsung kirim pesan
+            await _handleSendMessage(widget.initialText!.trim());
+        }
+      } else {
+        // Jika tidak ada user ID, gunakan mode guest
+        setState(() {
+          messages = [
+            {'role': 'ai', 'content': "Halo! 👋 Saya adalah asisten virtual TernakPro.", 'timestamp': DateTime.now()},
+            {'role': 'ai', 'content': "Silakan login untuk menggunakan fitur penuh.", 'timestamp': DateTime.now()},
+          ];
+        });
+      }
+      
+      setState(() {
+        _isInitialized = true;
+      });
+    } catch (e) {
+      print('Error loading user data: $e');
       setState(() {
         messages = [
-          {'ai': "Halo! 👋 Saya adalah asisten virtual TernakPro."},
-          {'ai': "Silakan login untuk menggunakan fitur penuh."},
+          {'role': 'ai', 'content': "Terjadi kesalahan saat memuat data. Silakan coba lagi.", 'timestamp': DateTime.now()},
         ];
+        _isInitialized = true;
       });
     }
   }
@@ -75,6 +107,7 @@ class _AsistenVirtualPageState extends State<AsistenVirtualPage> {
   Future<void> _loadOrCreateConversation() async {
     try {
       final conversations = await _chatService.getConversations(_currentUserId!);
+      
       if (conversations.isNotEmpty) {
         // Ambil percakapan terbaru (asumsikan sorted descending by date)
         final latestConversation = conversations.first;
@@ -87,42 +120,68 @@ class _AsistenVirtualPageState extends State<AsistenVirtualPage> {
         final newConv = await _chatService.startNewConversation(_currentUserId!);
         _currentConversationId = newConv['conversation_id'];
         
-        // Tambahkan pesan pembuka dari AI (bisa dari server atau local)
-        setState(() {
-          messages.add({'ai': "Halo! 👋 Saya adalah asisten virtual TernakPro."});
-          messages.add({'ai': "Saya siap membantu Anda dengan segala pertanyaan tentang peternakan."});
-        });
-        
-        // Opsional: Kirim pesan pembuka ke server jika diperlukan
+        // Tambahkan pesan pembuka dari AI
+        // setState(() {
+        //   messages.add({'role': 'ai', 'content': "Halo! 👋 Saya adalah asisten virtual TernakPro.", 'timestamp': DateTime.now()});
+        //   messages.add({'role': 'ai', 'content': "Saya siap membantu Anda dengan segala pertanyaan tentang peternakan.", 'timestamp': DateTime.now()});
+        // });
       }
       
       // Scroll ke bawah setelah load
-      _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollController.hasClients) {
+          _scrollController.jumpTo(_scrollController.position.minScrollExtent);
+        }
+      });
     } catch (e) {
       print('Error loading/creating conversation: $e');
       setState(() {
-        messages.add({'ai': 'Maaf, gagal memuat percakapan. Silakan coba lagi.'});
+        messages.add({'role': 'ai', 'content': 'Maaf, gagal memuat percakapan. Silakan coba lagi.', 'timestamp': DateTime.now()});
       });
     }
   }
 
+  // Pastikan chat yang dimuat sesuai dengan percakapan terakhir
   Future<void> _loadConversationMessages() async {
-    try {
-      final conversationData = await _chatService.getConversation(
-        _currentUserId!, 
-        _currentConversationId!
-      );
-      
-      final serverMessages = conversationData['messages'] ?? [];
-      setState(() {
-        messages = serverMessages.map<Map<String, String>>((msg) {
-          return msg['role'] == 'user' ? {'user': msg['content']} : {'ai': msg['content']};
-        }).toList();
-      });
-    } catch (e) {
-      print('Error loading messages: $e');
-    }
+  try {
+    if (_currentConversationId == null) return;
+    
+    final conversationData = await _chatService.getConversation(
+      _currentUserId!, 
+      _currentConversationId!
+    );
+    
+    final serverMessages = conversationData['messages'] ?? [];
+    setState(() {
+      messages = serverMessages
+          .map<Map<String, dynamic>>((msg) {
+            DateTime parsedTime;
+            try {
+              // Coba parse timestamp dari server
+              parsedTime = DateTime.parse(msg['timestamp'] ?? DateTime.now().toString());
+            } catch (parseError) {
+              // Fallback jika format invalid
+              print('Warning: Invalid timestamp "${msg['timestamp']}", using now: $parseError');
+              parsedTime = DateTime.now();
+            }
+            return {
+              'role': msg['role'] == 'user' ? 'user' : 'ai',
+              'content': msg['content'] ?? '', // Tambah null safety
+              'timestamp': parsedTime,
+              'id': msg['id']
+            };
+          })
+          .toList()
+        ..sort((Map<String, dynamic> a, Map<String, dynamic> b) => (a['timestamp'] as DateTime).compareTo(b['timestamp'] as DateTime))
+        ..reversed.toList(); // Reverse: baru di awal (index 0)
+    });
+  } catch (e) {
+    print('Error loading messages: $e'); // Ini tetap untuk log error besar (misal network)
+    setState(() {
+      messages.add({'role': 'ai', 'content': 'Gagal memuat riwayat percakapan.', 'timestamp': DateTime.now()});
+    });
   }
+}
 
   void _unfocusKeyboard() {
     FocusScope.of(context).unfocus();
@@ -135,52 +194,110 @@ class _AsistenVirtualPageState extends State<AsistenVirtualPage> {
     });
   }
 
-  // Handler untuk mengirim pesan
+  // Handler untuk mengirim pesan dengan request tracking
   Future<void> _handleSendMessage(String text) async {
-    if (text.isEmpty || isLoadingAI) return; // Cegah kirim jika sedang loading
+    if (text.isEmpty || isLoadingAI) return;
     
     _clearInputText();
     _unfocusKeyboard();
     
-    // Tambahkan pesan user ke UI
+    final currentRequestId = ++_lastRequestId;
+    
+    // Tambahkan pesan user ke AWAL list (insert(0, ...))
+    final userMessage = {
+      'role': 'user', 
+      'content': text, 
+      'timestamp': DateTime.now(),
+      'requestId': currentRequestId
+    };
+    
     setState(() {
-      messages.add({'user': text});
+      messages.insert(0, userMessage); // Insert ke awal
+      // Tambahkan loading sebagai item sementara di index 0 (sebelum AI response)
+      messages.insert(0, {
+        'role': 'loading',  // Role khusus untuk loading
+        'content': '', 
+        'timestamp': DateTime.now().add(const Duration(milliseconds: 1)),  // Timestamp sedikit di masa depan agar urut
+        'requestId': currentRequestId
+      });
       isLoadingAI = true;
     });
     
-    // Scroll ke bawah
-    _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+    // Scroll ke bawah (maxScrollExtent)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(_scrollController.position.minScrollExtent);
+      }
+    });
 
     try {
-      // Kirim ke API
       final response = await _chatService.sendMessage(
         userId: _currentUserId ?? 'default-user',
         message: text,
         conversationId: _currentConversationId,
       );
 
-      // Update conversation ID jika baru
+      if (currentRequestId != _lastRequestId) {
+        print('Ignoring response for outdated request');
+        // Hapus loading jika request outdated
+        _removeLoadingIfNeeded(currentRequestId);
+        return;
+      }
+
       if (_currentConversationId == null) {
         _currentConversationId = response['conversation_id'];
       }
 
-      // Tambahkan response AI ke UI
+      // Hapus item loading berdasarkan requestId
+      _removeLoadingIfNeeded(currentRequestId);
+
+      // Tambahkan response AI ke AWAL list
       setState(() {
-        messages.add({'ai': response['response']});
+        messages.insert(0, { // Insert ke awal
+          'role': 'ai', 
+          'content': response['response'], 
+          'timestamp': DateTime.now(),
+          'requestId': currentRequestId
+        });
         isLoadingAI = false;
       });
       
       // Scroll ke bawah lagi
-      _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollController.hasClients) {
+          _scrollController.jumpTo(_scrollController.position.minScrollExtent);
+        }
+      });
       
     } catch (e) {
-      // Handle error
+      if (currentRequestId != _lastRequestId) {
+        _removeLoadingIfNeeded(currentRequestId);
+        return;
+      }
+
+      // Hapus loading dan tambahkan error
+      _removeLoadingIfNeeded(currentRequestId);
+      
       setState(() {
-        messages.add({'ai': 'Maaf, terjadi kesalahan. Silakan coba lagi.'});
+        messages.insert(0, { // Insert ke awal
+          'role': 'ai', 
+          'content': 'Maaf, terjadi kesalahan. Silakan coba lagi.', 
+          'timestamp': DateTime.now(),
+          'requestId': currentRequestId,
+          'isError': true
+        });
         isLoadingAI = false;
       });
       print('Error sending message: $e');
     }
+  }
+
+  void _removeLoadingIfNeeded(int requestId) {
+    setState(() {
+      messages.removeWhere((msg) => 
+        msg['role'] == 'loading' && msg['requestId'] == requestId
+      );
+    });
   }
 
   void _startListening() async {
@@ -258,12 +375,16 @@ class _AsistenVirtualPageState extends State<AsistenVirtualPage> {
 
     try {
       await _chatService.deleteConversation(_currentUserId!, _currentConversationId!);
+      // Di akhir _clearChatHistory(), tambahkan:
+      setState(() {
+        messages.removeWhere((msg) => msg['role'] == 'loading');
+      });
       // Buat percakapan baru setelah delete
       await _loadOrCreateConversation();
     } catch (e) {
       print('Error clearing history: $e');
       setState(() {
-        messages.add({'ai': 'Gagal membersihkan riwayat. Silakan coba lagi.'});
+        messages.add({'role': 'ai', 'content': 'Gagal membersihkan riwayat. Silakan coba lagi.', 'timestamp': DateTime.now()});
       });
     }
   }
@@ -278,6 +399,14 @@ class _AsistenVirtualPageState extends State<AsistenVirtualPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_isInitialized) {
+      return Scaffold(
+        body: Center(
+          child: TernakProBoxLoading(),
+        ),
+      );
+    }
+
     return GestureDetector( 
       onTap: _unfocusKeyboard,
       child: Scaffold(
@@ -304,25 +433,32 @@ class _AsistenVirtualPageState extends State<AsistenVirtualPage> {
               children: [
                 _buildHeader(context),
                 Expanded(
-                  child: ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    itemCount: messages.length + (isLoadingAI ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      if (index < messages.length) {
+                    child: ListView.builder(
+                      controller: _scrollController,
+                      reverse: true,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      itemCount: messages.length,  // Hilangkan + (isLoadingAI ? 1 : 0)
+                      itemBuilder: (context, index) {
                         final msg = messages[index];
-                        return msg.containsKey('user')
-                            ? _userChat(msg['user']!)
-                            : Padding(
-                                padding: const EdgeInsets.only(bottom: 8),
-                                child: _botChat(msg['ai']!),
-                              );
-                      } else {
-                        return _buildLoadingAI();
-                      }
-                    },
+                        final role = msg['role'] as String?;
+                        
+                        if (role == 'user') {
+                          return _userChat(msg['content']!);
+                        } else if (role == 'loading') {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: _buildLoadingAI(),  // Gunakan widget loading yang sama
+                          );
+                        } else {
+                          // AI atau error
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: _botChat(msg['content']!, isError: msg['isError'] ?? false),
+                          );
+                        }
+                      },
+                    ),
                   ),
-                ),
                 _buildChatInput(),
               ],
             ),
@@ -332,7 +468,7 @@ class _AsistenVirtualPageState extends State<AsistenVirtualPage> {
     );
   }
 
-  // Widget untuk loading AI
+  // Menampilkan animasi loading saat AI memproses pesan
   Widget _buildLoadingAI() {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -359,8 +495,8 @@ class _AsistenVirtualPageState extends State<AsistenVirtualPage> {
                       child: TernakProBoxLoading(),
                     ),
                     SizedBox(width: 8),
-                    Text('AI sedang mengetik...', 
-                         style: AppTextStyle.medium.copyWith(color: AppColors.blackText, fontSize: 14)),
+                    Text('AI sedang mengetik...',
+                        style: AppTextStyle.medium.copyWith(color: AppColors.blackText, fontSize: 14)),
                   ],
                 ),
               ),
@@ -380,54 +516,57 @@ class _AsistenVirtualPageState extends State<AsistenVirtualPage> {
   }
 
   Widget _buildHeader(BuildContext context) {
-    return SafeArea(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: AppColors.bgLight,
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.black100.withAlpha(17),
-              offset: const Offset(0, 4),
-              blurRadius: 8,
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            GestureDetector(
-              onTap: () => Navigator.pushNamed(context, '/main'),
-              child: Image.asset('assets/auth_assets/icons/ic_back.png', color: AppColors.black100),
-            ),
-            const SizedBox(width: 12),
-            Image.asset('assets/ai_chat_assets/icons/ic_ternakbot.png', width: 57, height: 57),
-            const SizedBox(width: 8),
-            Text("SITERNAK", style: AppTextStyle.semiBold.copyWith(fontSize: 16, color: AppColors.blackText)),
-            const Spacer(),
-            GestureDetector(
-              onTap: () {
-                showModalBottomSheet(
-                  context: context,
-                  builder: (sheetContext) => Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      ListTile(
-                        leading: Icon(Icons.delete_forever),
-                        title: Text("Bersihkan riwayat chat"),
-                        onTap: () async {
-                          await _clearChatHistory();
-                          if (sheetContext.mounted) {
-                            Navigator.of(sheetContext).pop();
-                          }
-                        },
-                      ),
-                    ],
-                  ),
-                );
-              },
-              child: Image.asset('assets/ai_chat_assets/icons/ic_more.png', height: 20),
-            ),
-          ],
+    return Container(
+      color: AppColors.bgLight,
+      child: SafeArea(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: AppColors.bgLight,
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.black100.withAlpha(17),
+                offset: const Offset(0, 4),
+                blurRadius: 8,
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              GestureDetector(
+                onTap: () => Navigator.pushNamed(context, '/main'),
+                child: Image.asset('assets/auth_assets/icons/ic_back.png', color: AppColors.black100),
+              ),
+              const SizedBox(width: 12),
+              Image.asset('assets/ai_chat_assets/icons/ic_ternakbot.png', width: 57, height: 57),
+              const SizedBox(width: 8),
+              Text("SITERNAK", style: AppTextStyle.semiBold.copyWith(fontSize: 16, color: AppColors.blackText)),
+              const Spacer(),
+              GestureDetector(
+                onTap: () {
+                  showModalBottomSheet(
+                    context: context,
+                    builder: (sheetContext) => Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ListTile(
+                          leading: Icon(Icons.delete_forever),
+                          title: Text("Bersihkan riwayat chat"),
+                          onTap: () async {
+                            await _clearChatHistory();
+                            if (sheetContext.mounted) {
+                              Navigator.of(sheetContext).pop();
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  );
+                },
+                child: Image.asset('assets/ai_chat_assets/icons/ic_more.png', height: 20),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -545,7 +684,8 @@ class _AsistenVirtualPageState extends State<AsistenVirtualPage> {
     );
   }
 
-  Widget _botChat(String text) {
+  // Widget untuk bot chat dengan penanganan error
+  Widget _botChat(String text, {bool isError = false}) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
@@ -559,17 +699,37 @@ class _AsistenVirtualPageState extends State<AsistenVirtualPage> {
                 margin: const EdgeInsets.only(top: 10),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryWhite,
+                  color: isError ? Colors.red[100] : AppColors.primaryWhite,
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Text(text, style: AppTextStyle.medium.copyWith(color: AppColors.blackText, fontSize: 14)),
+                child: MarkdownBody(  // Ganti Text dengan MarkdownBody
+                  data: text,  // Ini akan parse Markdown
+                  styleSheet: MarkdownStyleSheet(
+                    p: AppTextStyle.medium.copyWith(  // Style default untuk paragraf
+                      color: isError ? Colors.red : AppColors.blackText,
+                      fontSize: 14,
+                    ),
+                    strong: AppTextStyle.semiBold.copyWith(  // Style bold (untuk **text**)
+                      color: isError ? Colors.red : AppColors.blackText,
+                      fontSize: 14,
+                    ),
+                    em: AppTextStyle.italic.copyWith(  // Style italic (untuk *text*)
+                      color: isError ? Colors.red : AppColors.blackText,
+                      fontSize: 14,
+                    ),
+                    // Tambah style lain jika perlu, misal list atau code
+                  ),
+                  shrinkWrap: true,  // Biar fit di container
+                  selectable: true,  // Bisa select text
+                ),
               ),
               Positioned(
                 left: -6,
                 bottom: 20,
                 child: Transform.rotate(
                   angle: 0.785,
-                  child: Container(width: 12, height: 12, color: AppColors.primaryWhite),
+                  child: Container(width: 12, height: 12, 
+                    color: isError ? Colors.red[100]! : AppColors.primaryWhite),
                 ),
               ),
             ],

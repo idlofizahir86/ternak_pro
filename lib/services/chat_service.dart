@@ -7,22 +7,35 @@ class ChatService {
   static const String baseUrl = 'https://ternakpro.id/api/v1';
   
   String? authToken;
+  final Completer<void> _tokenLoaded = Completer<void>();
 
   ChatService() {
     _loadToken();
   }
 
   Future<void> _loadToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    authToken = prefs.getString('token');
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      authToken = prefs.getString('token');
+      _tokenLoaded.complete();
+    } catch (e) {
+      _tokenLoaded.completeError(e);
+    }
   }
 
-  // Kirim pesan ke AI
+  // Tunggu hingga token selesai dimuat
+  Future<void> ensureTokenLoaded() async {
+    await _tokenLoaded.future;
+  }
+
+  // Kirim pesan ke AI dengan timeout handling yang lebih baik
   Future<Map<String, dynamic>> sendMessage({
     required String userId,
     required String message,
-    int? conversationId,
+    int? conversationId, // Tambahkan opsi cancel token
   }) async {
+    await ensureTokenLoaded();
+    
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/ai/chat/deepseek'),
@@ -33,7 +46,7 @@ class ChatService {
         body: json.encode({
           'user_id': userId,
           'message': message,
-          'conversation_id': conversationId, // Gunakan dynamic conversationId
+          'conversation_id': conversationId,
         }),
       ).timeout(Duration(seconds: 30));
 
@@ -73,6 +86,8 @@ class ChatService {
 
   // Dapatkan semua percakapan user
   Future<List<dynamic>> getConversations(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+      authToken = prefs.getString('token');
     final response = await http.post(
       Uri.parse('$baseUrl/ai/conversations/deepseek'),
       headers: {
@@ -93,6 +108,8 @@ class ChatService {
 
   // Dapatkan percakapan spesifik
   Future<Map<String, dynamic>> getConversation(String userId, int conversationId) async {
+    final prefs = await SharedPreferences.getInstance();
+    authToken = prefs.getString('token');
     final response = await http.get(
       Uri.parse('$baseUrl/ai/conversation/deepseek/$userId/$conversationId'),
       headers: {

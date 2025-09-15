@@ -1,24 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../models/NotificationData.dart';
+import '../../services/api_service.dart';
+import '../../shared/custom_loading.dart';
 import '../../shared/theme.dart';
 import '../../shared/widgets/custom_image_view.dart';
 
-// Data model untuk notifikasi
-class NotificationData {
-  final int id;
-  final String title;
-  final String message;
-  final String iconPath;
-  bool isRead;
 
-  NotificationData({
-    required this.id,
-    required this.title,
-    required this.message,
-    required this.iconPath,
-    this.isRead = false,
-  });
-}
 
 // Header dengan ikon back
 Widget _buildHeaderSection(BuildContext context) {
@@ -219,33 +207,43 @@ class NotifikasiPage extends StatefulWidget {
 }
 
 class _NotifikasiPageState extends State<NotifikasiPage> {
-  // Data dummy notifikasi
-  final List<NotificationData> notifications = [
-    NotificationData(
-      id: 1,
-      title: 'Vaksin Ternak',
-      message:
-          'Jangan lupa! Vaksinasi sapi Anda dijadwalkan hari ini. Pastikan ternak tetap sehat 💉🐄. Pastikan Anda menyiapkan vaksin yang diperlukan dan konsultasikan dengan dokter hewan untuk jadwal yang tepat.',
-      iconPath: 'assets/home_assets/icons/ic_shield.png',
-      isRead: false,
-    ),
-    NotificationData(
-      id: 2,
-      title: 'Pemeriksaan Kesehatan',
-      message:
-          'Jadwal pemeriksaan kesehatan ternak mingguan akan dilakukan besok. Siapkan kandang dan catatan kesehatan ternak Anda.',
-      iconPath: 'assets/home_assets/icons/ic_snack.png',
-      isRead: false,
-    ),
-    NotificationData(
-      id: 3,
-      title: 'Pembaruan Pakan',
-      message:
-          'Stok pakan ternak hampir habis. Segera lakukan pembelian untuk memastikan ketersediaan pakan minggu depan.',
-      iconPath: 'assets/home_assets/icons/ic_cow.png',
-      isRead: false,
-    ),
-  ];
+  final ApiService _apiService = ApiService();
+  List<NotificationData> notifications = [];
+  bool isLoading = false;
+
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchNotifications();  // Fetch notifications from the API
+  }
+
+  Future<void> _fetchNotifications() async {
+    final credential = await _apiService.loadCredentials();
+    final userId = credential['user_id'];  // Replace with the actual userId logic
+
+    try {
+      // Start loading
+      setState(() {
+        isLoading = true;
+      });
+
+      // Fetch notifications from the API
+      final fetchedNotifications = await _apiService.fetchNotifications(userId);
+      
+      // Update state with fetched notifications
+      setState(() {
+        notifications = fetchedNotifications;
+        isLoading = false;  // Stop loading
+      });
+    } catch (e) {
+      // Handle error (e.g., show a message or fallback data)
+      print('Error fetching notifications: $e');
+      setState(() {
+        isLoading = false;  // Stop loading in case of error
+      });
+    }
+  }
 
   // Fungsi untuk tandai semua notifikasi sebagai dibaca
   void _markAllAsRead() {
@@ -361,6 +359,17 @@ class _NotifikasiPageState extends State<NotifikasiPage> {
               );
             },
           ),
+          // Indikator loading
+          if (isLoading)
+            Positioned.fill(
+              child: Container(
+                color: Colors.white60, // Background transparan
+                child: Center(
+                  child: TernakProBoxLoading(),
+                ),
+              ),
+            ),
+
           // Tombol floating "Tandai telah dibaca semua"
           Positioned(
             bottom: 16,

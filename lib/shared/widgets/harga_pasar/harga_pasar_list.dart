@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'package:ternak_pro/services/api_service.dart';
 import '../../theme.dart';
 import 'harga_filter.dart';
 
@@ -76,18 +76,17 @@ class CustomHargaPasarItem extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     imageUrl.startsWith('http')
-                    ? Image.network(
-                        imageUrl,
-                        width: cardWidth * 0.5,
-                      )
-                    : Image.asset(
-                        imageUrl,
-                        width: cardWidth * 0.5,
-                      ),
+                        ? Image.network(
+                            imageUrl,
+                            width: cardWidth * 0.5,
+                          )
+                        : Image.asset(
+                            imageUrl,
+                            width: cardWidth * 0.5,
+                          ),
                   ],
                 ),
               ),
-              
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -122,16 +121,16 @@ class CustomHargaPasarItem extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     statusIcon.startsWith('http')
-                    ? Image.network(
-                        statusIcon,
-                        width: 12.0,
-                        height: 12.0,
-                      )
-                    : Image.asset(
-                        statusIcon,
-                        width: 12.0,
-                        height: 12.0,
-                      ),
+                        ? Image.network(
+                            statusIcon,
+                            width: 12.0,
+                            height: 12.0,
+                          )
+                        : Image.asset(
+                            statusIcon,
+                            width: 12.0,
+                            height: 12.0,
+                          ),
                     SizedBox(width: 4.0),
                     Text(
                       'Harga $kondisi',
@@ -148,27 +147,41 @@ class CustomHargaPasarItem extends StatelessWidget {
   }
 }
 
-class HargaPasarList extends StatelessWidget {
+class HargaPasarList extends StatefulWidget {
   final String searchQuery;
   final HargaFilter filter;
 
-  HargaPasarList({
+  const HargaPasarList({
     super.key,
     this.searchQuery = '',
     this.filter = HargaFilter.semua,
   });
 
-  final List<Map<String, dynamic>> items = [
-    {'imageUrl':'assets/harga_pasar_assets/images/dagi_sapi.png','name':'Daging Sapi Kualitas 1','harga':130850,'kondisi':'Naik','lokasi':'Nasional'},
-    {'imageUrl':'assets/harga_pasar_assets/images/daging_ayam.png','name':'Daging Ayam','harga':130850,'kondisi':'Stabil','lokasi':'Nasional'},
-    {'imageUrl':'assets/harga_pasar_assets/images/susu_kambing.png','name':'Susu Kambing Etawa','harga':130850,'kondisi':'Stabil','lokasi':'Nasional'},
-    {'imageUrl':'assets/harga_pasar_assets/images/telur.png','name':'Telur Ayam','harga':130850,'kondisi':'Turun','lokasi':'Nasional'},
-    {'imageUrl':'assets/harga_pasar_assets/images/susu_kambing.png','name':'Susu Kambing Etawa','harga':130850,'kondisi':'Stabil','lokasi':'Nasional'},
-    {'imageUrl':'assets/harga_pasar_assets/images/telur.png','name':'Telur Ayam','harga':130850,'kondisi':'Turun','lokasi':'Nasional'},
-  ];
+  @override
+  State<HargaPasarList> createState() => _HargaPasarListState();
+}
+
+class _HargaPasarListState extends State<HargaPasarList> {
+  late Future<List<Map<String, dynamic>>> hargaPasarFuture;
+  List<Map<String, dynamic>> items = [];  // Declare items here
+
+  @override
+  void initState() {
+    super.initState();
+    hargaPasarFuture = _fetchHargaPasarData();
+  }
+
+  // Fetch data from the API
+  Future<List<Map<String, dynamic>>> _fetchHargaPasarData() async {
+    List<Map<String, dynamic>> fetchedItems = await ApiService().getAllHargaPasar();
+    setState(() {
+      items = fetchedItems;  // Update items list with the fetched data
+    });
+    return fetchedItems;
+  }
 
   bool _matchFilter(String kondisi) {
-    switch (filter) {
+    switch (widget.filter) {
       case HargaFilter.semua:  return true;
       case HargaFilter.naik:   return kondisi.toLowerCase() == 'naik';
       case HargaFilter.turun:  return kondisi.toLowerCase() == 'turun';
@@ -178,33 +191,51 @@ class HargaPasarList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final q = searchQuery.trim().toLowerCase();
+    final q = widget.searchQuery.trim().toLowerCase();
 
     final filtered = items.where((it) {
-      final name = (it['name'] as String).toLowerCase();
+      final name = (it['nama'] as String).toLowerCase();
       final kondisi = (it['kondisi'] as String);
       final okQuery = q.isEmpty || name.contains(q);
       final okFilter = _matchFilter(kondisi);
       return okQuery && okFilter;
     }).toList();
 
-    return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(8, 8, 8, 50), // bottom 50
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 8.0,
-        mainAxisSpacing: 8.0,
-        childAspectRatio: 0.75,
-      ),
-      itemCount: filtered.length,
-      itemBuilder: (context, index) {
-        final item = filtered[index];
-        return CustomHargaPasarItem(
-          lokasi: item['lokasi'],
-          imageUrl: item['imageUrl'],
-          name: item['name'],
-          harga: item['harga'],
-          kondisi: item['kondisi'],
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: hargaPasarFuture,  // Use the future for fetching data
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());  // Show loading spinner
+        }
+
+        if (snapshot.hasError) {
+          return Center(child: Text('Error fetching data'));
+        }
+
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return Center(child: Text('No data available'));
+        }
+
+        // Filter and display the items in the grid
+        return GridView.builder(
+          padding: const EdgeInsets.fromLTRB(8, 8, 8, 50), // bottom 50
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: 8.0,
+            mainAxisSpacing: 8.0,
+            childAspectRatio: 0.75,
+          ),
+          itemCount: filtered.length,
+          itemBuilder: (context, index) {
+            final item = filtered[index];
+            return CustomHargaPasarItem(
+              lokasi: item['lokasi'],
+              imageUrl: item['image_url'],
+              name: item['nama'],
+              harga: item['harga_kg'],
+              kondisi: item['kondisi'],
+            );
+          },
         );
       },
     );

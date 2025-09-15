@@ -1,33 +1,32 @@
 import 'package:intl/intl.dart';
 
-final _timeFormat = DateFormat.Hms(); // "HH:mm:ss"
+// Formatter for "HH:mm"
+final _timeFormat = DateFormat.Hm();  // "HH:mm"
 
-// Helper: terima "08:00:00" atau "1970-01-01T08:00:00Z" dst.
 DateTime _parseTimeToDateTime(String? v) {
   if (v == null || v.isEmpty) {
-    return DateTime(1970, 1, 1, 0, 0, 0);
+    return DateTime(1970, 1, 1, 0, 0);  // Default to midnight
   }
   final s = v.trim();
 
-  // Jika sudah ISO lengkap → langsung parse
+  // If it's a full ISO timestamp (like "1970-01-01T08:00:00Z")
   if (RegExp(r'\d{4}-\d{2}-\d{2}').hasMatch(s)) {
-    return DateTime.tryParse(s) ?? DateTime(1970, 1, 1, 0, 0, 0);
+    return DateTime.tryParse(s) ?? DateTime(1970, 1, 1, 0, 0);
   }
 
-  // Jika hanya "HH:mm" atau "HH:mm:ss" → tempel tanggal dummy
+  // If it's in the "HH:mm:ss" or "HH:mm" format, we append seconds if missing
   final hhmmss = RegExp(r'^\d{2}:\d{2}(:\d{2})?$');
   if (hhmmss.hasMatch(s)) {
-    final withSec = s.length == 5 ? '$s:00' : s; // "HH:mm" → "HH:mm:ss"
-    return DateTime.tryParse('1970-01-01 $withSec') ??
-        DateTime(1970, 1, 1, 0, 0, 0);
+    final withSec = s.length == 5 ? '$s:00' : s; // If only HH:mm, add :00 for seconds
+    return DateTime.tryParse('1970-01-01 $withSec') ?? DateTime(1970, 1, 1, 0, 0);
   }
 
-  // Fallback aman
-  return DateTime(1970, 1, 1, 0, 0, 0);
+  // Default fallback if none of the above matched
+  return DateTime(1970, 1, 1, 0, 0);
 }
 
 
-class KonsultasiPakanItem {
+class KonsultasiPakarItem {
   final int id;
   final String imageUrl;
   final String nama;
@@ -37,15 +36,15 @@ class KonsultasiPakanItem {
   final String noTlp;
   final String spealis;
   final String lokasiPraktik;
-  final DateTime pukulMulai;
-  final DateTime pukulAkhir;
+  final String pukulMulai;
+  final String pukulAkhir;
   final String pendidikan;
   final String pengalaman;
   final String fokusKonsultasi;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
-  KonsultasiPakanItem({
+  KonsultasiPakarItem({
     required this.id,
     required this.imageUrl,
     required this.nama,
@@ -65,9 +64,9 @@ class KonsultasiPakanItem {
   });
 
   /// Factory untuk parsing dari JSON Map
-  factory KonsultasiPakanItem.fromJson(Map<String, dynamic> json) {
+  factory KonsultasiPakarItem.fromJson(Map<String, dynamic> json) {
     int kategoriId = json['kategori_id'] as int;
-    return KonsultasiPakanItem(
+    return KonsultasiPakarItem(
       id: json['id'] is int ? json['id'] : int.parse(json['id'].toString()),
       imageUrl: json['image_url'] ?? '',
       nama: json['nama'] ?? '',
@@ -81,8 +80,8 @@ class KonsultasiPakanItem {
       noTlp: json['no_tlp'].toString(),
       spealis: json['spealis'] ?? '',
       lokasiPraktik: json['lokasi_praktik'] ?? '',
-      pukulMulai: _parseTimeToDateTime(json['pukul_mulai']?.toString()),
-      pukulAkhir: _parseTimeToDateTime(json['pukul_akhir']?.toString()),
+      pukulMulai: json['pukul_mulai'],
+      pukulAkhir: json['pukul_akhir'],
       pendidikan: json['pendidikan'] ?? '',
       pengalaman: json['pengalaman'] ?? '',
       fokusKonsultasi: json['fokus_konsultasi'] ?? '',
@@ -107,8 +106,8 @@ class KonsultasiPakanItem {
       'no_tlp': noTlp,
       'spealis': spealis,
       'lokasi_praktik': lokasiPraktik,
-      'pukul_mulai': _timeFormat.format(pukulMulai),
-      'pukul_akhir': _timeFormat.format(pukulAkhir),
+      'pukul_mulai': pukulMulai,
+      'pukul_akhir': pukulAkhir,
       'pendidikan': pendidikan,
       'pengalaman': pengalaman,
       'fokus_konsultasi': fokusKonsultasi,
